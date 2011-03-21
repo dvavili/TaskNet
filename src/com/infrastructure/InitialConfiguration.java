@@ -6,6 +6,7 @@ package com.infrastructure;
 
 import com.conf.Preferences;
 import com.logger.LoggerClass;
+import com.logger.TaskNetLogger;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -125,8 +126,9 @@ public class InitialConfiguration implements ActionListener {
                 JOptionPane.showMessageDialog(null, "Local node name", "Enter the local node name", JOptionPane.WARNING_MESSAGE);
             } else {
                 frame.dispose();
-                if (getLocalNodeName().equalsIgnoreCase("logger")) {
-                    LoggerClass logger = new LoggerClass(getLocalNodeName(), getFileName());
+                if (getLocalNodeName().equalsIgnoreCase("coordinator")) {
+                    TaskNetLogger coordinator = new TaskNetLogger(getLocalNodeName(), getFileName());
+                    coordinator.startListening();
                 } else {
                     MulticastInfrastructure mis = new MulticastInfrastructure(getLocalNodeName(), getFileName(), getSelection(bgClockType));
                     mis.startListening();

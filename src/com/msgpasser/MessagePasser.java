@@ -6,7 +6,6 @@ import com.clock.ClockService;
 import com.clock.LogicalClock;
 import com.clock.VectorClock;
 import com.conf.Preferences;
-import com.conf.Node;
 import com.exceptions.InvalidMessageException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -258,6 +257,7 @@ public class MessagePasser extends Thread {
                         System.out.println("Sending MUTEX_ACK to: " + message.getDest());
                     }
                     udpsendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(prop.getProperty("node." + message.getDest() + ".ip")), Integer.parseInt(prop.getProperty("node." + message.getDest() + ".port")));
+                    System.out.println(InetAddress.getByName(prop.getProperty("node." + message.getDest() + ".ip")));
                     udpClientSocket.send(udpsendPacket);
                 } else {
                     Object[] node_names = Preferences.node_addresses.keySet().toArray();
@@ -304,9 +304,6 @@ public class MessagePasser extends Thread {
      * Also ID of the message takes precedence over Kind
      */
     public void send(Message msg) throws InvalidMessageException {
-        if(msg.getNormalMsgType() == Message.NormalMsgType.NORMAL){
-            System.out.println("Exchanging profiles");
-        }
         String msgType = prop.getProperty("is." + msg.getId());
         updateTime(msg, "send");
         if (msgType == null) {
@@ -353,7 +350,7 @@ public class MessagePasser extends Thread {
                 }
             }
         } else {
-            System.out.println("Sent message added to queue");
+//            System.out.println("Sent message added to queue");
             synchronized (outQueue) {
                 outQueue.add(msg);
                 if (Preferences.logEvent && !msg.getDest().equalsIgnoreCase(Preferences.logger_name)) {
@@ -382,8 +379,10 @@ public class MessagePasser extends Thread {
                 ois = new ObjectInputStream(bis);
                 final Message msg = (Message) (ois.readObject());
                 if (msg instanceof MulticastMessage) {
+                    System.out.println("Getting multicast msg");
                     deliverMessage((MulticastMessage) msg);
                 } else {
+                    System.out.println("Getting normal message");
                     processReceivedMessage(msg);
                 }
             } catch (InvalidMessageException ex) {
@@ -411,6 +410,7 @@ public class MessagePasser extends Thread {
      * Also ID of the message takes precedence over Kind
      */
     void processReceivedMessage(Message msg) throws InvalidMessageException {
+        System.out.println("Getting message");
         if (!msg.getDest().equalsIgnoreCase("logger")) {
             updateTime(msg, "receive");
         }

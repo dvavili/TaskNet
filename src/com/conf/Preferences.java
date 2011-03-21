@@ -34,6 +34,7 @@ public class Preferences {
     public static final String[] clockTypes = {"LOGICAL", "VECTOR", "DEFAULT"};
     public static int host_index;
     public static String logger_name;
+    public static String COORDINATOR;
     public static final String MULTICAST_MESSAGE = "multicast";
     public static final String ENTER_CRITICAL_SECTION = "Enter Critical Section";
     public static final String LEAVE_CRITICAL_SECTION = "Leave Critical Section";
@@ -55,6 +56,7 @@ public class Preferences {
             Properties prop = new Properties();
             prop.load(new FileInputStream(configuration_filename));
             logger_name = prop.getProperty("LOGGER");
+            COORDINATOR = prop.getProperty("COORDINATOR");
             StringTokenizer node_string = new StringTokenizer(prop.getProperty("NAMES"), ",");
             int num_nodes = node_string.countTokens();
             for (int i = 0; i < num_nodes; i++) {

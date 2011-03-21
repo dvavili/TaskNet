@@ -143,6 +143,11 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
         mainFrame.setContentPane(mainPanel);
         mainFrame.setVisible(true);
 
+        listenForIncomingMessages();
+        keepSendingProfileUpdates();
+    }
+
+    private void listenForIncomingMessages() {
         /*
          * This thread keeps polling for any incoming messages and
          * displays them to user
@@ -188,6 +193,35 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                         }
                     } catch (InterruptedException ex) {
                         ex.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+    }
+
+    private void keepSendingProfileUpdates() {
+        (new Thread() {
+
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(1000);
+                        try {
+                            synchronized (Preferences.nodes) {
+                                Node updateNode = Preferences.nodes.get(host);
+                                updateNode.setBatteryLevel(5);
+                                XStream profileDetails = new XStream();
+                                profileDetails.alias("node", Node.class);
+                                Message profileUpdate = new Message(Preferences.COORDINATOR, "", "", profileDetails.toXML(updateNode));
+                                profileUpdate.setNormalMsgType(Message.NormalMsgType.PROFILE_UPDATE);
+                                mp.send(profileUpdate);
+                            }
+                        } catch (InvalidMessageException ex) {
+                            Logger.getLogger(MulticastInfrastructure.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(MulticastInfrastructure.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
             }

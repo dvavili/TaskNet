@@ -7,14 +7,20 @@ package com.logger;
 import com.clock.ClockFactory;
 import com.clock.LogicalClock;
 import com.clock.VectorClock;
+import com.conf.Node;
 import com.conf.Preferences;
+import com.exceptions.InvalidMessageException;
 import com.msgpasser.Message;
 import com.msgpasser.MessagePasser;
+import com.msgpasser.MulticastMessage;
 import com.msgpasser.TimeStampedMessage;
+import com.thoughtworks.xstream.XStream;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -44,6 +50,7 @@ public class LoggerClass implements ActionListener {
         mp = new MessagePasser(conf_file, host_name);
         logs = new Logs();
         buildUI();
+        listenForIncomingMessages();
     }
 
     public void buildUI() {
@@ -84,6 +91,31 @@ public class LoggerClass implements ActionListener {
         mainFrame.setVisible(true);
 
         mp.start();
+        listenForIncomingMessages();
+//        (new Thread() {
+//
+//            @Override
+//            public void run() {
+//                while (true) {
+//                    try {
+//                        Thread.sleep(10);
+//                        Message msg = mp.receive();
+//                        if (msg != null) {
+//                            logs.add((Message) msg.getData());
+//                        }
+//                    } catch (InterruptedException ex) {
+//                        ex.printStackTrace();
+//                    }
+//                }
+//            }
+//        }).start();
+    }
+
+    private void listenForIncomingMessages() {
+        /*
+         * This thread keeps polling for any incoming messages and
+         * displays them to user
+         */
         (new Thread() {
 
             @Override
@@ -93,7 +125,43 @@ public class LoggerClass implements ActionListener {
                         Thread.sleep(10);
                         Message msg = mp.receive();
                         if (msg != null) {
-                            logs.add((Message) msg.getData());
+                            if (msg instanceof MulticastMessage) {
+                                switch (((MulticastMessage) msg).getMessageType()) {
+                                    case TASK_ADV:
+                                        taLogArea.append("Received task advertisement\n");
+                                        XStream nodeXStream = new XStream();
+                                        nodeXStream.alias("node", Node.class);
+                                        String nodeProfile = nodeXStream.toXML(Preferences.nodes.get(Preferences.logger_name));
+                                        Message profileMsg = new Message(((MulticastMessage) msg).getSource(), "", "", nodeProfile);
+                                        profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
+                                        try {
+                                            mp.send(profileMsg);
+                                        } catch (InvalidMessageException ex) {
+                                            Logger.getLogger(LoggerClass.class.getName()).log(Level.SEVERE, null, ex);
+                                        }
+                                        break;
+                                }
+                            } else {
+                                switch (msg.getNormalMsgType()) {
+                                    case NORMAL:
+                                        taLogArea.append(msg.getData() + "\n");
+                                        break;
+                                    case PROFILE_XCHG:
+                                        XStream readProfile = new XStream();
+                                        readProfile.alias("node", Node.class);
+                                        Node profileOfNode = (Node) readProfile.fromXML(msg.getData().toString());
+                                        taLogArea.append(profileOfNode + "\n");
+                                        break;
+                                    case PROFILE_UPDATE:
+                                        XStream profile = new XStream();
+                                        profile.alias("node", Node.class);
+                                        Node nodeToBeUpdated = (Node)profile.fromXML(msg.getData().toString());
+                                        synchronized(Preferences.nodes){
+                                            Preferences.nodes.get(nodeToBeUpdated.getName()).update(nodeToBeUpdated);
+                                        }
+                                        break;
+                                }
+                            }
                         }
                     } catch (InterruptedException ex) {
                         ex.printStackTrace();

@@ -19,7 +19,6 @@ public class Node implements Serializable {
     Integer memoryCapacity;
     Integer processorLoad;
     Integer batteryLevel;
-    
 
     Node(String name, int index, InetAddress address) {
         nodeName = name;
@@ -34,36 +33,46 @@ public class Node implements Serializable {
         return nodeIndex;
     }
 
-    public String getName(){
+    public String getName() {
         return nodeName;
     }
 
-    public InetAddress getAdrress(){
+    public InetAddress getAdrress() {
         return nodeAddress;
     }
 
-    public int getMemoryCapacity(){
+    public int getMemoryCapacity() {
         return memoryCapacity;
     }
 
-    public int getProcessorLoad(){
+    public int getProcessorLoad() {
         return processorLoad;
     }
 
-    public int getBatteryLevel(){
+    public int getBatteryLevel() {
         return batteryLevel;
     }
 
+    public void setBatteryLevel(int value) {
+        batteryLevel -= value;
+    }
+
+    public void update(Node nodeToBeUpdated) {
+        memoryCapacity = nodeToBeUpdated.getMemoryCapacity();
+        processorLoad = nodeToBeUpdated.getProcessorLoad();
+        batteryLevel = nodeToBeUpdated.getBatteryLevel();
+    }
+    
     @Override
-    public String toString(){
+    public String toString() {
         String str = "";
-        str+="Name: " + nodeName;
-        str+="\nIndex: " + nodeIndex;
-        str+="\nAdrress: " + nodeAddress;
-        str+="\nMemory Capacity: " + memoryCapacity;
-        str+="\nProcessor Load: " + processorLoad;
-        str+="\nBattery Level: " + batteryLevel;
-        str+="\n";
+        str += "Name: " + nodeName;
+        str += "\nIndex: " + nodeIndex;
+        str += "\nAdrress: " + nodeAddress;
+        str += "\nMemory Capacity: " + memoryCapacity;
+        str += "\nProcessor Load: " + processorLoad;
+        str += "\nBattery Level: " + batteryLevel;
+        str += "\n";
         return str;
     }
 }

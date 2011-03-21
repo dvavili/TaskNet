@@ -18,7 +18,7 @@ import java.io.Serializable;
  */
 public class Message implements Serializable {
 
-    public enum NormalMsgType { NORMAL, PROFILE_XCHG, TASK_ADV };
+    public enum NormalMsgType { NORMAL, PROFILE_XCHG, TASK_ADV, PROFILE_UPDATE };
 
     protected Serializable data;
     protected String destination;
