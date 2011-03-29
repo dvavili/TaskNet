@@ -8,7 +8,6 @@ import ds.android.tasknet.msgpasser.Message;
 import ds.android.tasknet.msgpasser.MessagePasser;
 import ds.android.tasknet.msgpasser.MulticastMessage;
 import ds.android.tasknet.task.Task;
-import com.thoughtworks.xstream.XStream;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -170,10 +169,7 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                 switch (((MulticastMessage) msg).getMessageType()) {
                                     case TASK_ADV:
                                         taMessages.append("Received task advertisement\n");
-                                        XStream nodeXStream = new XStream();
-                                        nodeXStream.alias("node", Node.class);
-                                        String nodeProfile = nodeXStream.toXML(Preferences.nodes.get(host));
-                                        Message profileMsg = new Message(((MulticastMessage) msg).getSource(), "", "", nodeProfile);
+                                        Message profileMsg = new Message(((MulticastMessage) msg).getSource(), "", "", Preferences.nodes.get(host) /* nodeProfile*/);
                                         profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
                                         try {
                                             mp.send(profileMsg);
@@ -188,9 +184,7 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                         taMessages.append(msg.getData() + "\n");
                                         break;
                                     case PROFILE_XCHG:
-                                        XStream readProfile = new XStream();
-                                        readProfile.alias("node", Node.class);
-                                        Node profileOfNode = (Node) readProfile.fromXML(msg.getData().toString());
+                                        Node profileOfNode = (Node) msg.getData(); 
                                         taMessages.append(profileOfNode + "\n");
                                         synchronized (taskGroup) {
                                             String taskId = profileOfNode.getTaskId();
@@ -225,9 +219,7 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                             synchronized (Preferences.nodes) {
                                 Node updateNode = Preferences.nodes.get(host);
                                 updateNode.setBatteryLevel(1);
-                                XStream profileDetails = new XStream();
-                                profileDetails.alias("node", Node.class);
-                                Message profileUpdate = new Message(Preferences.COORDINATOR, "", "", profileDetails.toXML(updateNode));
+                                Message profileUpdate = new Message(Preferences.COORDINATOR, "", "", updateNode);
                                 profileUpdate.setNormalMsgType(Message.NormalMsgType.PROFILE_UPDATE);
                                 mp.send(profileUpdate);
                             }
@@ -277,12 +269,10 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                         taskNum++;
                         String taskId = Preferences.node_names.get(host_index) + taskNum;
                         Task newTask = new Task(new Integer(tfSend.getText()), taskId);
-                        XStream taskDetails = new XStream();
-                        taskDetails.alias("task", Task.class);
                         taMessages.append("Task advertised\n");
                         taskGroup.put(taskId, new ArrayList<Node>());
                         MulticastMessage mMsg = new MulticastMessage(node, kind, msgid,
-                                taskDetails.toXML(newTask), mp.getClock(), true, MulticastMessage.MessageType.TASK_ADV, host);
+                                newTask, mp.getClock(), true, MulticastMessage.MessageType.TASK_ADV, host);
                         mp.send(mMsg);
                         Preferences.crashNode = "";
                     } catch (NumberFormatException nex) {
