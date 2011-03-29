@@ -10,7 +10,6 @@ import ds.android.tasknet.exceptions.InvalidMessageException;
 import ds.android.tasknet.msgpasser.Message;
 import ds.android.tasknet.msgpasser.MessagePasser;
 import ds.android.tasknet.msgpasser.MulticastMessage;
-import com.thoughtworks.xstream.XStream;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -96,9 +95,7 @@ public class Coordinator {
                                 switch (((MulticastMessage) msg).getMessageType()) {
                                     case TASK_ADV:
                                         taLogArea.append("Received task advertisement\n");
-                                        XStream nodeXStream = new XStream();
-                                        nodeXStream.alias("node", Node.class);
-                                        String nodeProfile = nodeXStream.toXML(Preferences.nodes.get(Preferences.logger_name));
+                                        Node nodeProfile = Preferences.nodes.get(Preferences.logger_name);
                                         Message profileMsg = new Message(((MulticastMessage) msg).getSource(), "", "", nodeProfile);
                                         profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
                                         try {
@@ -114,16 +111,12 @@ public class Coordinator {
                                         taLogArea.append(msg.getData() + "\n");
                                         break;
                                     case PROFILE_XCHG:
-                                        XStream readProfile = new XStream();
-                                        readProfile.alias("node", Node.class);
-                                        Node profileOfNode = (Node) readProfile.fromXML(msg.getData().toString());
+                                        Node profileOfNode = (Node)msg.getData();
                                         taLogArea.append(profileOfNode + "\n");
                                         break;
                                     case PROFILE_UPDATE:
                                         System.out.println("Receiving update info");
-                                        XStream profile = new XStream();
-                                        profile.alias("node", Node.class);
-                                        Node nodeToBeUpdated = (Node) profile.fromXML(msg.getData().toString());
+                                        Node nodeToBeUpdated = (Node)msg.getData();
                                         synchronized (Preferences.nodes) {
                                             Preferences.nodes.get(nodeToBeUpdated.getName()).update(nodeToBeUpdated);
                                         }
