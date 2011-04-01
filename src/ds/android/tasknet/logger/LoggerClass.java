@@ -156,9 +156,9 @@ public class LoggerClass implements ActionListener {
                                         XStream profile = new XStream();
                                         profile.alias("node", Node.class);
                                         Node nodeToBeUpdated = (Node)profile.fromXML(msg.getData().toString());
-                                        synchronized(Preferences.nodes){
-                                            Preferences.nodes.get(nodeToBeUpdated.getName()).update(nodeToBeUpdated);
-                                        }
+//                                        synchronized(Preferences.nodes){
+//                                            Preferences.nodes.get(nodeToBeUpdated.getName()).update(nodeToBeUpdated);
+//                                        }
                                         break;
                                 }
                             }

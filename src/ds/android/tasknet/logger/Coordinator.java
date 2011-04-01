@@ -10,6 +10,7 @@ import ds.android.tasknet.exceptions.InvalidMessageException;
 import ds.android.tasknet.msgpasser.Message;
 import ds.android.tasknet.msgpasser.MessagePasser;
 import ds.android.tasknet.msgpasser.MulticastMessage;
+import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -36,12 +37,12 @@ public class Coordinator {
 
     JFrame frame;
     JScrollPane scrollPane;
-    JPanel mainPanel, panel, scrollPanel;
+    JPanel mainPanel, batteryPanel, memoryPanel, cpuLoadPanel, scrollPanel, panel;
     static Vector<String> vClients;
-    JProgressBar clientProgressBars[];
+    JProgressBar batteryProgressBars[],memoryProgressBars[],cpuLoadProgressBars[];
     int numberOfClients = 0;
     JTextArea taLogArea;
-    TitledBorder batteryTitle;
+    TitledBorder batteryTitle,memoryTitle,cpuLoadTitle;
     MessagePasser mp;
 
     public Coordinator(String host_name, String conf_file) {
@@ -53,6 +54,7 @@ public class Coordinator {
         vClients = new Vector<String>();
         mainPanel = new JPanel();
         mainPanel.add(new JLabel("Communication Logs:"));
+        panel = new JPanel(new FlowLayout());
 
         taLogArea = new JTextArea(10, 50);
         taLogArea.setEditable(false);
@@ -62,8 +64,16 @@ public class Coordinator {
         mainPanel.add(scrollPane);
 
         batteryTitle = BorderFactory.createTitledBorder("Battery Life of Nodes");
-        panel = new JPanel(new GridBagLayout());
-        panel.setBorder(batteryTitle);
+        batteryPanel = new JPanel(new GridBagLayout());
+        batteryPanel.setBorder(batteryTitle);
+
+        memoryTitle = BorderFactory.createTitledBorder("Memory capacity of Nodes");
+        memoryPanel = new JPanel(new GridBagLayout());
+        memoryPanel.setBorder(memoryTitle);
+
+        cpuLoadTitle = BorderFactory.createTitledBorder("CPU Load of Nodes");
+        cpuLoadPanel = new JPanel(new GridBagLayout());
+        cpuLoadPanel.setBorder(cpuLoadTitle);
 
         initComponents();
 
@@ -72,7 +82,7 @@ public class Coordinator {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
         frame.setResizable(false);
-        frame.setSize(600, 600);
+        frame.setSize(800, 500);
 
         listenForIncomingMessages();
     }
@@ -118,7 +128,10 @@ public class Coordinator {
                                         System.out.println("Receiving update info");
                                         Node nodeToBeUpdated = (Node)msg.getData();
                                         synchronized (Preferences.nodes) {
-                                            Preferences.nodes.get(nodeToBeUpdated.getName()).update(nodeToBeUpdated);
+                                            int mem = (int)nodeToBeUpdated.getMemoryCapacity() - 1;
+                                            int procload = (int)nodeToBeUpdated.getProcessorLoad() - 1;
+                                            int batterylevel = nodeToBeUpdated.getBatteryLevel() - 1;
+                                            (Preferences.nodes.get(nodeToBeUpdated.getName())).update(mem,procload,batterylevel);
                                         }
                                         repaintPanel();
                                         break;
@@ -176,18 +189,18 @@ public class Coordinator {
         gbc.gridy = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        clientProgressBars = new JProgressBar[numberOfClients];
+        batteryProgressBars = new JProgressBar[numberOfClients];
         for (int i = 0; i < numberOfClients; i++) {
-            clientProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 100);
+            batteryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 100);
             String nodeName = Preferences.node_names.get(i);
-            clientProgressBars[i].setValue(Preferences.nodes.get(nodeName).getBatteryLevel());
+            batteryProgressBars[i].setValue(Preferences.nodes.get(nodeName).getBatteryLevel());
         }
 
         int numberOfRows = 10;
         for (int i = 0; i < numberOfClients; i++) {
-            panel.add(clientProgressBars[i], gbc);
+            batteryPanel.add(batteryProgressBars[i], gbc);
             gbc.gridy++;
-            panel.add(new JLabel(Preferences.node_names.get(i)), gbc);
+            batteryPanel.add(new JLabel(Preferences.node_names.get(i)), gbc);
             gbc.gridy--;
             gbc.gridx++;
             if ((i + 1) % numberOfRows == 0) {
@@ -196,12 +209,61 @@ public class Coordinator {
             }
         }
 
-//        taLogArea = new JTextArea(10,50);
-//        gbc.gridx++;
-//        gbc.gridy++;
-//        panel.add(taLogArea,gbc);
+        /*-----------------------------------------------------------------------*/
+        /*                Memory load of Nodes                                   */
+        /*-----------------------------------------------------------------------*/
+        gbc.insets = new Insets(15, 15, 15, 15);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-//        listenForClients();
+        memoryProgressBars = new JProgressBar[numberOfClients];
+        for (int i = 0; i < numberOfClients; i++) {
+            memoryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 100);
+            String nodeName = Preferences.node_names.get(i);
+            memoryProgressBars[i].setValue((int)Preferences.nodes.get(nodeName).getMemoryCapacity());
+        }
+
+        for (int i = 0; i < numberOfClients; i++) {
+            memoryPanel.add(memoryProgressBars[i], gbc);
+            gbc.gridy++;
+            memoryPanel.add(new JLabel(Preferences.node_names.get(i)), gbc);
+            gbc.gridy--;
+            gbc.gridx++;
+            if ((i + 1) % numberOfRows == 0) {
+                gbc.gridy += 2;
+                gbc.gridx = 0;
+            }
+        }
+        /*-----------------------------------------------------------------------*/
+        /*                Processor load of Nodes                                   */
+        /*-----------------------------------------------------------------------*/
+        gbc.insets = new Insets(15, 15, 15, 15);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        cpuLoadProgressBars = new JProgressBar[numberOfClients];
+        for (int i = 0; i < numberOfClients; i++) {
+            cpuLoadProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 100);
+            String nodeName = Preferences.node_names.get(i);
+            cpuLoadProgressBars[i].setValue((int)Preferences.nodes.get(nodeName).getProcessorLoad());
+        }
+
+        for (int i = 0; i < numberOfClients; i++) {
+            cpuLoadPanel.add(cpuLoadProgressBars[i], gbc);
+            gbc.gridy++;
+            cpuLoadPanel.add(new JLabel(Preferences.node_names.get(i)), gbc);
+            gbc.gridy--;
+            gbc.gridx++;
+            if ((i + 1) % numberOfRows == 0) {
+                gbc.gridy += 2;
+                gbc.gridx = 0;
+            }
+        }
+        panel.add(batteryPanel);
+        panel.add(memoryPanel);
+        panel.add(cpuLoadPanel);
     }
 
     private void listenForClients() {
@@ -228,8 +290,14 @@ public class Coordinator {
     }
 
     private void repaintPanel() {
+        batteryPanel.removeAll();
+        cpuLoadPanel.removeAll();
+        memoryPanel.removeAll();
         panel.removeAll();
         initComponents();
+        batteryPanel.revalidate();
+        cpuLoadPanel.revalidate();
+        memoryPanel.revalidate();
         panel.revalidate();
     }
 //    private void addClients() {

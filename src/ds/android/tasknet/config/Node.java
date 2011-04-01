@@ -1,11 +1,9 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package ds.android.tasknet.config;
 
 import java.io.Serializable;
 import java.net.InetAddress;
+
+
 
 /**
  *
@@ -13,8 +11,11 @@ import java.net.InetAddress;
  */
 public class Node implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    String nodeName;
+    /**
+	 *
+	 */
+	private static final long serialVersionUID = 1L;
+	String nodeName;
     Integer nodeIndex;
     InetAddress nodeAddress;
     Integer memoryCapacity;
@@ -26,16 +27,16 @@ public class Node implements Serializable {
         nodeName = name;
         nodeIndex = index;
         nodeAddress = address;
-        memoryCapacity = (index+1) * 1000;
-        processorLoad = (index+1) * 100;
-        batteryLevel = (index+1) * 10;
+        memoryCapacity = 100;
+        processorLoad = 100;
+        batteryLevel = 100;
     }
 
-    public void setTaskId(String id){
+    public void setTaskid(String id){
         taskId = id;
     }
 
-    public String getTaskId(){
+    public String getTaskid(){
         return taskId;
     }
 
@@ -51,15 +52,15 @@ public class Node implements Serializable {
         return nodeAddress;
     }
 
-    public int getMemoryCapacity() {
+    public long getMemoryCapacity() {
         return memoryCapacity;
     }
 
-    public int getProcessorLoad() {
+    public float getProcessorLoad() {
         return processorLoad;
     }
 
-    public int getBatteryLevel() {
+    public int getBatteryLevel(){
         return batteryLevel;
     }
 
@@ -67,12 +68,13 @@ public class Node implements Serializable {
         batteryLevel -= value;
     }
 
-    public void update(Node nodeToBeUpdated) {
-        memoryCapacity = nodeToBeUpdated.getMemoryCapacity();
-        processorLoad = nodeToBeUpdated.getProcessorLoad();
-        batteryLevel = nodeToBeUpdated.getBatteryLevel();
+    public void update(int currentRAM, int CPUsage, int currentBatteryLevel) {
+        memoryCapacity = currentRAM;
+        processorLoad = CPUsage;
+        batteryLevel = currentBatteryLevel;
+        System.out.println("\nMemory: " + memoryCapacity + "\nCPU Load: " + processorLoad + "\nBattery: "+batteryLevel);
     }
-    
+
     @Override
     public String toString() {
         String str = "";

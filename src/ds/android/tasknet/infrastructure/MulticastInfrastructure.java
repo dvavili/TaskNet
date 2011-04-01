@@ -187,7 +187,7 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                         Node profileOfNode = (Node) msg.getData(); 
                                         taMessages.append(profileOfNode + "\n");
                                         synchronized (taskGroup) {
-                                            String taskId = profileOfNode.getTaskId();
+                                            String taskId = profileOfNode.getTaskid();
                                             ArrayList<Node> taskNodes = taskGroup.get(taskId);
                                             if (taskNodes == null) {
                                                 taskNodes = new ArrayList<Node>();
