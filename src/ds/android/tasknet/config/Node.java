@@ -18,8 +18,8 @@ public class Node implements Serializable {
 	String nodeName;
     Integer nodeIndex;
     InetAddress nodeAddress;
-    Integer memoryCapacity;
-    Integer processorLoad;
+    long memoryCapacity;
+    float processorLoad;
     Integer batteryLevel;
     String taskId;
 
@@ -27,9 +27,9 @@ public class Node implements Serializable {
         nodeName = name;
         nodeIndex = index;
         nodeAddress = address;
-        memoryCapacity = 100;
-        processorLoad = 100;
-        batteryLevel = 100;
+        memoryCapacity = 0;
+        processorLoad = 0;
+        batteryLevel = 0;
     }
 
     public void setTaskid(String id){
@@ -61,18 +61,17 @@ public class Node implements Serializable {
     }
 
     public int getBatteryLevel(){
-        return batteryLevel;
+    	return batteryLevel;
     }
 
     public void setBatteryLevel(int value) {
-        batteryLevel -= value;
+//        batteryLevel -= value;
     }
 
-    public void update(int currentRAM, int CPUsage, int currentBatteryLevel) {
+    public void update(long currentRAM, float CPUsage, int currentBatteryLevel) {
         memoryCapacity = currentRAM;
         processorLoad = CPUsage;
         batteryLevel = currentBatteryLevel;
-        System.out.println("\nMemory: " + memoryCapacity + "\nCPU Load: " + processorLoad + "\nBattery: "+batteryLevel);
     }
 
     @Override

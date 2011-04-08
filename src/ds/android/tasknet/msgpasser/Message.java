@@ -20,7 +20,7 @@ public class Message implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public enum NormalMsgType { NORMAL, PROFILE_XCHG, TASK_ADV, PROFILE_UPDATE };
+    public enum NormalMsgType { NORMAL, PROFILE_XCHG, TASK_ADV, PROFILE_UPDATE, DISTRIBUTED_TASK, TASK_RESULT };
 
     protected Serializable data;
     protected String destination;

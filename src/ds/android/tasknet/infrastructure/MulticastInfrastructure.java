@@ -1,5 +1,6 @@
 package ds.android.tasknet.infrastructure;
 
+import ds.android.tasknet.application.SampleApplication;
 import ds.android.tasknet.clock.ClockFactory;
 import ds.android.tasknet.config.Node;
 import ds.android.tasknet.config.Preferences;
@@ -7,7 +8,9 @@ import ds.android.tasknet.exceptions.InvalidMessageException;
 import ds.android.tasknet.msgpasser.Message;
 import ds.android.tasknet.msgpasser.MessagePasser;
 import ds.android.tasknet.msgpasser.MulticastMessage;
+import ds.android.tasknet.task.DistributedTask;
 import ds.android.tasknet.task.Task;
+import ds.android.tasknet.task.TaskResult;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -17,6 +20,9 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -60,6 +66,7 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
     ClockFactory.ClockType clock;
     public static int taskNum = 0;
     HashMap<String, ArrayList<Node>> taskGroup;
+    HashMap<String, Task> taskDetails;
 
     public MulticastInfrastructure(String host_name, String conf_file, String clockType) {
         prop = new Properties();
@@ -81,6 +88,7 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
         }
         host = host_name;
         taskGroup = new HashMap<String, ArrayList<Node>>();
+        taskDetails = new HashMap<String, Task>();
         buildUI(conf_file);
     }
 
@@ -153,9 +161,10 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
 
     private void listenForIncomingMessages() {
         /*
-         * This thread keeps polling for any incoming messages and
-         * displays them to user
+         * This thread keeps polling for any incoming messages and displays them
+         * to user
          */
+
         (new Thread() {
 
             @Override
@@ -169,12 +178,27 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                 switch (((MulticastMessage) msg).getMessageType()) {
                                     case TASK_ADV:
                                         taMessages.append("Received task advertisement\n");
-                                        Message profileMsg = new Message(((MulticastMessage) msg).getSource(), "", "", Preferences.nodes.get(host) /* nodeProfile*/);
-                                        profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
-                                        try {
-                                            mp.send(profileMsg);
-                                        } catch (InvalidMessageException ex) {
-                                            Logger.getLogger(MulticastInfrastructure.class.getName()).log(Level.SEVERE, null, ex);
+                                        Task receivedTask = (Task) msg.getData();
+                                        synchronized (Preferences.nodes) {
+                                            Node host_node = Preferences.nodes.get(host);
+                                            host_node.setTaskid(receivedTask.getTaskId());
+                                            float remaining_load = Preferences.TOTAL_LOAD_AT_NODE
+                                                    - (receivedTask.taskLoad + host_node.getProcessorLoad());
+                                            if (remaining_load > Preferences.host_reserved_load) {
+                                                Message profileMsg = new Message(((MulticastMessage) msg).getSource(),
+                                                        "", "", host_node);
+                                                profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
+                                                try {
+                                                    mp.send(profileMsg);
+                                                } catch (InvalidMessageException ex) {
+                                                    ex.printStackTrace();
+                                                }
+                                                taMessages.append("Sent message profile for task: "
+                                                        + receivedTask.taskId + " " + remaining_load
+                                                        + "\n");
+                                            } else {
+                                                taMessages.append("Node Overloaded: " + receivedTask.taskId + " " + remaining_load + "\n");
+                                            }
                                         }
                                         break;
                                 }
@@ -184,10 +208,11 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                         taMessages.append(msg.getData() + "\n");
                                         break;
                                     case PROFILE_XCHG:
-                                        Node profileOfNode = (Node) msg.getData(); 
+                                        Node profileOfNode = (Node) msg.getData();
                                         taMessages.append(profileOfNode + "\n");
+                                        // taMessages.append(profileOfNode + "\n");
+                                        String taskId = profileOfNode.getTaskid();
                                         synchronized (taskGroup) {
-                                            String taskId = profileOfNode.getTaskid();
                                             ArrayList<Node> taskNodes = taskGroup.get(taskId);
                                             if (taskNodes == null) {
                                                 taskNodes = new ArrayList<Node>();
@@ -195,6 +220,25 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                             taskNodes.add(profileOfNode);
                                             taskGroup.put(taskId, taskNodes);
                                         }
+                                        distributeTask(profileOfNode);
+                                        break;
+                                    case DISTRIBUTED_TASK:
+                                        DistributedTask distTask = (DistributedTask) msg.getData();
+                                        TaskResult result = new TaskResult(distTask.getTaskLoad(),
+                                                distTask.taskId, host, handleDistributedTask(distTask));
+                                        taMessages.append(result.getTaskResult() + "\n");
+                                        Message resultMsg = new Message(distTask.getSource(), "", "", result);
+                                        resultMsg.setNormalMsgType(Message.NormalMsgType.TASK_RESULT);
+                                        try {
+                                            mp.send(resultMsg);
+                                        } catch (InvalidMessageException ex) {
+                                            Logger.getLogger(MulticastInfrastructure.class.getName()).log(Level.SEVERE, null, ex);
+                                        }
+                                        break;
+                                    case TASK_RESULT:
+                                        TaskResult taskResult = (TaskResult)msg.getData();
+                                        taMessages.append("Result from: " + taskResult.getSource() + " ==> "
+                                                + taskResult.getTaskResult());
                                         break;
                                 }
                             }
@@ -202,6 +246,58 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                     } catch (InterruptedException ex) {
                         ex.printStackTrace();
                     }
+                }
+            }
+
+            private Serializable handleDistributedTask(DistributedTask gotTask) {
+                try {
+                    Class cl = Class.forName(gotTask.getClassName());
+                    HashMap<String, Class[]> mthdDef = new HashMap<String, Class[]>();
+                    Method mthds[] = cl.getDeclaredMethods();
+                    for (Method m : mthds) {
+                        mthdDef.put(m.getName(), m.getParameterTypes());
+                    }
+                    if (gotTask.getParameters() != null && ((mthdDef.get(gotTask.getMethodName())).length != gotTask.getParameters().length)) {
+                        System.out.println("Parameters don\'t match");
+                    } else {
+                        Class params[] = mthdDef.get(gotTask.getMethodName());
+                        Object parameters[] = (Object[]) gotTask.getParameters();
+                        try {
+                            Method invokedMethod = cl.getMethod(gotTask.getMethodName(), params);
+                            return (Serializable) invokedMethod.invoke(new SampleApplication(), parameters);
+                        } catch (IllegalArgumentException e) {
+                            e.printStackTrace();
+                        } catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                        } catch (InvocationTargetException e) {
+                            e.printStackTrace();
+                        } catch (SecurityException e) {
+                            e.printStackTrace();
+                        } catch (NoSuchMethodException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            private void distributeTask(Node profileOfNode) {
+                String taskId = profileOfNode.getTaskid();
+                Task taskToDistribute = taskDetails.get(taskId);
+                Serializable[] parameters = new Serializable[2];
+                parameters[0] = 10;
+                parameters[1] = 20;
+                DistributedTask dsTask = new DistributedTask(taskToDistribute.getTaskLoad(), taskId,
+                        taskToDistribute.getSource(),
+                        "ds.android.tasknet.application.SampleApplication", "method1", parameters);
+                Message distMsg = new Message(profileOfNode.getName(), "", "", dsTask);
+                distMsg.setNormalMsgType(Message.NormalMsgType.DISTRIBUTED_TASK);
+                try {
+                    mp.send(distMsg);
+                } catch (InvalidMessageException ex) {
+                    ex.printStackTrace();
                 }
             }
         }).start();
@@ -268,9 +364,14 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                     try {
                         taskNum++;
                         String taskId = Preferences.node_names.get(host_index) + taskNum;
-                        Task newTask = new Task(new Integer(tfSend.getText()), taskId);
+                        Task newTask = new Task(new Integer(tfSend.getText()), taskId, host);
                         taMessages.append("Task advertised\n");
-                        taskGroup.put(taskId, new ArrayList<Node>());
+                        synchronized (taskGroup) {
+                            synchronized (taskDetails) {
+                                taskGroup.put(taskId, new ArrayList<Node>());
+                                taskDetails.put(taskId, newTask);
+                            }
+                        }
                         MulticastMessage mMsg = new MulticastMessage(node, kind, msgid,
                                 newTask, mp.getClock(), true, MulticastMessage.MessageType.TASK_ADV, host);
                         mp.send(mMsg);
