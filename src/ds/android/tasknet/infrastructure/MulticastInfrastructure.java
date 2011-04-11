@@ -212,8 +212,10 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                         taMessages.append(profileOfNode + "\n");
                                         String taskId = profileOfNode.getTaskid();
                                         synchronized(taskLookup){
+                                            profileOfNode.setSeqNum(taskLookup.get(taskId).nextSequenceNumber());
+                                            taskLookup.get(taskId).setSequenceNumber(profileOfNode.getSeqNum());
                                             (taskLookup.get(taskId).getTaskGroup()).add(profileOfNode);
-                                            distributeTask(profileOfNode.getTaskid());
+                                            distributeTask(taskId);
                                         }
                                         break;
                                     case DISTRIBUTED_TASK:
@@ -232,7 +234,7 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                     case TASK_RESULT:
                                         TaskResult taskResult = (TaskResult)msg.getData();
                                         taMessages.append("Result from: " + taskResult.getSource() + " ==> "
-                                                + taskResult.getTaskResult());
+                                                + taskResult.getTaskResult() + "\n");
                                         break;
                                 }
                             }

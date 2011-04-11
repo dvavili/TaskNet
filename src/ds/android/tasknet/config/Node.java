@@ -21,6 +21,7 @@ public class Node implements Serializable {
     Integer batteryLevel;
     String taskId;
     Boolean distributed;
+    Integer sequenceNumber;
 
     Node(String name, int index, InetAddress address) {
         nodeName = name;
@@ -30,6 +31,15 @@ public class Node implements Serializable {
         processorLoad = 0;
         batteryLevel = 0;
         distributed = false;
+        sequenceNumber = -1;
+    }
+
+    public void setSeqNum(Integer sNum) {
+        sequenceNumber = sNum;
+    }
+
+    public Integer getSeqNum() {
+        return sequenceNumber;
     }
 
     public void setTaskid(String id) {
@@ -68,11 +78,11 @@ public class Node implements Serializable {
 //        batteryLevel -= value;
     }
 
-    public Boolean hasBeenDistributed(){
+    public Boolean hasBeenDistributed() {
         return distributed;
     }
 
-    public void setDistributed(Boolean flag){
+    public void setDistributed(Boolean flag) {
         distributed = flag;
     }
 

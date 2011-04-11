@@ -22,7 +22,7 @@ public class Task implements Serializable {
         taskId = id;
         taskLoad = load;
         taskSrc = src;
-        sequenceNumber = 0;
+        sequenceNumber = -1;
     }
 
     public String getSource() {
