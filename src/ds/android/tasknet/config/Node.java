@@ -3,8 +3,6 @@ package ds.android.tasknet.config;
 import java.io.Serializable;
 import java.net.InetAddress;
 
-
-
 /**
  *
  * @author Divya_PKV
@@ -12,16 +10,17 @@ import java.net.InetAddress;
 public class Node implements Serializable {
 
     /**
-	 *
-	 */
-	private static final long serialVersionUID = 1L;
-	String nodeName;
+     *
+     */
+    private static final long serialVersionUID = 1L;
+    String nodeName;
     Integer nodeIndex;
     InetAddress nodeAddress;
     long memoryCapacity;
     float processorLoad;
     Integer batteryLevel;
     String taskId;
+    Boolean distributed;
 
     Node(String name, int index, InetAddress address) {
         nodeName = name;
@@ -30,13 +29,14 @@ public class Node implements Serializable {
         memoryCapacity = 0;
         processorLoad = 0;
         batteryLevel = 0;
+        distributed = false;
     }
 
-    public void setTaskid(String id){
+    public void setTaskid(String id) {
         taskId = id;
     }
 
-    public String getTaskid(){
+    public String getTaskid() {
         return taskId;
     }
 
@@ -60,12 +60,20 @@ public class Node implements Serializable {
         return processorLoad;
     }
 
-    public int getBatteryLevel(){
-    	return batteryLevel;
+    public int getBatteryLevel() {
+        return batteryLevel;
     }
 
     public void setBatteryLevel(int value) {
 //        batteryLevel -= value;
+    }
+
+    public Boolean hasBeenDistributed(){
+        return distributed;
+    }
+
+    public void setDistributed(Boolean flag){
+        distributed = flag;
     }
 
     public void update(long currentRAM, float CPUsage, int currentBatteryLevel) {
