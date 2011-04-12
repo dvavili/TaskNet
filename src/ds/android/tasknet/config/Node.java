@@ -2,6 +2,10 @@ package ds.android.tasknet.config;
 
 import java.io.Serializable;
 import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
+
+import ds.android.tasknet.task.Task;
 
 /**
  *
@@ -19,9 +23,10 @@ public class Node implements Serializable {
     long memoryCapacity;
     float processorLoad;
     Integer batteryLevel;
-    String taskId;
-    Boolean distributed;
-    Integer sequenceNumber;
+    Map<String, Task> acceptedTasks = new HashMap<String, Task>();
+//    String taskId;
+//    Boolean distributed;
+//    Integer sequenceNumber;
 
     Node(String name, int index, InetAddress address) {
         nodeName = name;
@@ -30,25 +35,25 @@ public class Node implements Serializable {
         memoryCapacity = 0;
         processorLoad = 0;
         batteryLevel = 0;
-        distributed = false;
-        sequenceNumber = -1;
+//        distributed = false;
+//        sequenceNumber = -1;
     }
 
-    public void setSeqNum(Integer sNum) {
-        sequenceNumber = sNum;
-    }
-
-    public Integer getSeqNum() {
-        return sequenceNumber;
-    }
-
-    public void setTaskid(String id) {
-        taskId = id;
-    }
-
-    public String getTaskid() {
-        return taskId;
-    }
+//    public void setSeqNum(Integer sNum) {
+//        sequenceNumber = sNum;
+//    }
+//
+//    public Integer getSeqNum() {
+//        return sequenceNumber;
+//    }
+//
+//    public void setTaskid(String id) {
+//        taskId = id;
+//    }
+//
+//    public String getTaskid() {
+//        return taskId;
+//    }
 
     public int getIndex() {
         return nodeIndex;
@@ -78,13 +83,13 @@ public class Node implements Serializable {
 //        batteryLevel -= value;
     }
 
-    public Boolean hasBeenDistributed() {
-        return distributed;
-    }
-
-    public void setDistributed(Boolean flag) {
-        distributed = flag;
-    }
+//    public Boolean hasBeenDistributed() {
+//        return distributed;
+//    }
+//
+//    public void setDistributed(Boolean flag) {
+//        distributed = flag;
+//    }
 
     public void update(long currentRAM, float CPUsage, int currentBatteryLevel) {
         memoryCapacity = currentRAM;
@@ -92,6 +97,16 @@ public class Node implements Serializable {
         batteryLevel = currentBatteryLevel;
     }
 
+    public void addToAcceptedTask(String taskAdvReplyId, Task task) {
+    	if(this.acceptedTasks.get(taskAdvReplyId) == null) {
+    		this.acceptedTasks.put(taskAdvReplyId, task);
+    	}
+    }
+    
+    public void removeFromAcceptedTask(String taskId) {
+    	this.acceptedTasks.remove(taskId);
+    }
+    
     @Override
     public String toString() {
         String str = "";

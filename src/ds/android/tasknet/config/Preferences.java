@@ -42,14 +42,17 @@ public class Preferences {
 	public static final int SIZE_OF_BUFFER = 10000;
 	public static final int PROFILE_UPDATE_TIME_PERIOD = 2000;
 	public static final int TOTAL_LOAD_AT_NODE = 100;
+	public static final int MINIMUM_LOAD_REQUEST = 0;
 	public static final int NUMBER_OF_RETRIES_BEFORE_QUITTING = 3;
-	public static final int WAIT_TIME_BEFORE_RETRYING = 100;
+	public static final int WAIT_TIME_BEFORE_RETRYING = 10000;
 	// public static ArrayList<Node> nodesList;
 	public static HashMap<String, InetAddress> node_addresses;
 	public static HashMap<String, Node> nodes;
 	public static HashMap<Integer, String> node_names;
 	public static boolean logDrop, logDelay, logDuplicate, logEvent;
 	public static String crashNode;
+	public static enum TASK_STATUS {ADVERTISED, DISTRIBUTED, RECEIVED_RESULTS};
+	public static enum TASK_CHUNK_STATUS {DISTRIBUTED, RECEIVED};
 
 	public static void setHostDetails(String configuration_filename,
 			String local_host) {

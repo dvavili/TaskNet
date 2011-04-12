@@ -4,8 +4,11 @@
  */
 package ds.android.tasknet.task;
 
-import ds.android.tasknet.config.Node;
+import ds.android.tasknet.config.Preferences;
+
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -14,13 +17,17 @@ import java.util.ArrayList;
 public class TaskLookup {
 
     Task task;
-    ArrayList<Node> taskGroup;
+    Map<Integer, TaskChunk> taskGroup;
     Integer maxSequenceNumber;
+    Enum<Preferences.TASK_STATUS> status;
+    int retry;
 
     public TaskLookup(Task task) {
         this.task = task;
-        this.taskGroup = new ArrayList<Node>();
+        this.taskGroup = new HashMap<Integer, TaskChunk>();
         this.maxSequenceNumber = task.getSeqNumber();
+        this.status = Preferences.TASK_STATUS.ADVERTISED;
+        this.retry = 0;
     }
 
     public Task getTask() {
@@ -31,14 +38,18 @@ public class TaskLookup {
         task = t;
     }
 
-    public ArrayList<Node> getTaskGroup() {
+    public Map<Integer, TaskChunk> getTaskGroup() {
         return taskGroup;
     }
 
-    public void set(ArrayList<Node> taskgp) {
+    public void setTaskGroup(Map<Integer, TaskChunk> taskgp) {
         taskGroup = taskgp;
     }
 
+    public void addToTaskGroup(Integer seqNumber, TaskChunk taskChunk) {
+    	this.taskGroup.put(seqNumber, taskChunk);
+    }
+    
     public Integer getSequenceNumber() {
         return maxSequenceNumber;
     }
@@ -50,4 +61,27 @@ public class TaskLookup {
     public Integer nextSequenceNumber() {
         return ++maxSequenceNumber;
     }
+
+	public Enum<Preferences.TASK_STATUS> getStatus() {
+		return status;
+	}
+
+	public void setStatus(Enum<Preferences.TASK_STATUS> status) {
+		this.status = status;
+		this.retry = 0;
+	}
+
+	public int getRetry() {
+		return retry;
+	}
+
+	public void setRetry(int retry) {
+		this.retry = retry;
+	}
+	
+	public void incrRetry() {
+		this.retry++;
+	}
+    
+    
 }
