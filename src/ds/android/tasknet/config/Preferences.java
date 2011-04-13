@@ -44,7 +44,7 @@ public class Preferences {
 	public static final int TOTAL_LOAD_AT_NODE = 100;
 	public static final int MINIMUM_LOAD_REQUEST = 0;
 	public static final int NUMBER_OF_RETRIES_BEFORE_QUITTING = 3;
-	public static final int WAIT_TIME_BEFORE_RETRYING = 10000;
+	public static final int WAIT_TIME_BEFORE_RETRYING = 1000;
 	// public static ArrayList<Node> nodesList;
 	public static HashMap<String, InetAddress> node_addresses;
 	public static HashMap<String, Node> nodes;
