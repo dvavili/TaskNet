@@ -7,86 +7,94 @@ import ds.android.tasknet.config.Preferences;
 
 public class TaskChunk implements Serializable {
 
-	private static final long serialVersionUID = 1L;
-	String taskId;
+    private static final long serialVersionUID = 1L;
+    String taskId;
     Enum<Preferences.TASK_CHUNK_STATUS> status;
     Integer sequenceNumber;
     Node node;
     DistributedTask dsTask;
     String taskAdvReplyId;
     int retry;
-    
-	public TaskChunk(String taskId, Node node, Integer sequenceNumber, 
-			DistributedTask dsTask, String taskAdvReplyId) {
-		super();
-		this.taskId = taskId;
-		this.node = node;
-		this.sequenceNumber = sequenceNumber;		
-		this.dsTask = dsTask;
-		this.status = Preferences.TASK_CHUNK_STATUS.DISTRIBUTED;
-		this.taskAdvReplyId = taskAdvReplyId;
-		retry = 0;
-	}
 
-	public String getTaskId() {
-		return taskId;
-	}
+    public TaskChunk(String taskId, Node node, Integer sequenceNumber,
+            DistributedTask dsTask, String taskAdvReplyId) {
+        super();
+        this.taskId = taskId;
+        this.node = node;
+        this.sequenceNumber = sequenceNumber;
+        this.dsTask = dsTask;
+        this.status = Preferences.TASK_CHUNK_STATUS.DISTRIBUTED;
+        this.taskAdvReplyId = taskAdvReplyId;
+        retry = 0;
+    }
 
-	public void setTaskId(String taskId) {
-		this.taskId = taskId;
-	}
+    public String getTaskId() {
+        return taskId;
+    }
 
-	public Enum<Preferences.TASK_CHUNK_STATUS> getStatus() {
-		return status;
-	}
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
+    }
 
-	public void setStatus(Enum<Preferences.TASK_CHUNK_STATUS> status) {
-		this.status = status;
-	}
+    public Enum<Preferences.TASK_CHUNK_STATUS> getStatus() {
+        return status;
+    }
 
-	public Integer getSequenceNumber() {
-		return sequenceNumber;
-	}
+    public void setStatus(Enum<Preferences.TASK_CHUNK_STATUS> status) {
+        this.status = status;
+    }
 
-	public void setSequenceNumber(Integer sequenceNumber) {
-		this.sequenceNumber = sequenceNumber;
-	}
+    public Integer getSequenceNumber() {
+        return sequenceNumber;
+    }
 
-	public Node getNode() {
-		return node;
-	}
+    public void setSequenceNumber(Integer sequenceNumber) {
+        this.sequenceNumber = sequenceNumber;
+    }
 
-	public void setNode(Node node) {
-		this.node = node;
-	}
+    public Node getNode() {
+        return node;
+    }
 
-	public DistributedTask getDsTask() {
-		return dsTask;
-	}
+    public void setNode(Node node) {
+        this.node = node;
+    }
 
-	public void setDsTask(DistributedTask dsTask) {
-		this.dsTask = dsTask;
-	}
+    public DistributedTask getDsTask() {
+        return dsTask;
+    }
 
-	public int getRetry() {
-		return retry;
-	}
+    public void setDsTask(DistributedTask dsTask) {
+        this.dsTask = dsTask;
+    }
 
-	public void setRetry(int retry) {
-		this.retry = retry;
-	}
-	
-	public void incrRetry() {
-		this.retry++;
-	}
+    public int getRetry() {
+        return retry;
+    }
 
-	public String getTaskAdvReplyId() {
-		return taskAdvReplyId;
-	}
+    public void setRetry(int retry) {
+        this.retry = retry;
+    }
 
-	public void setTaskAdvReplyId(String taskAdvReplyId) {
-		this.taskAdvReplyId = taskAdvReplyId;
-	}
-		           
-	
+    public void incrRetry() {
+        this.retry++;
+    }
+
+    public String getTaskAdvReplyId() {
+        return taskAdvReplyId;
+    }
+
+    public void setTaskAdvReplyId(String taskAdvReplyId) {
+        this.taskAdvReplyId = taskAdvReplyId;
+    }
+
+    public String toString(){
+        return  "\nTask Id: " + taskId
+                + "\nStatus: " + status
+                + "\nSequenceNumber: " + sequenceNumber
+                + "\nNode: " + node
+                + "Distributed task: " + dsTask
+                + "\nTaskAdvReplyId: " + taskAdvReplyId
+                + "\nRetry: " + retry;
+    }
 }

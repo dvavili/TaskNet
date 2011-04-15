@@ -24,9 +24,6 @@ public class Node implements Serializable {
     float processorLoad;
     Integer batteryLevel;
     Map<String, Task> acceptedTasks = new HashMap<String, Task>();
-//    String taskId;
-//    Boolean distributed;
-//    Integer sequenceNumber;
 
     Node(String name, int index, InetAddress address) {
         nodeName = name;
@@ -35,25 +32,7 @@ public class Node implements Serializable {
         memoryCapacity = 0;
         processorLoad = 0;
         batteryLevel = 0;
-//        distributed = false;
-//        sequenceNumber = -1;
     }
-
-//    public void setSeqNum(Integer sNum) {
-//        sequenceNumber = sNum;
-//    }
-//
-//    public Integer getSeqNum() {
-//        return sequenceNumber;
-//    }
-//
-//    public void setTaskid(String id) {
-//        taskId = id;
-//    }
-//
-//    public String getTaskid() {
-//        return taskId;
-//    }
 
     public int getIndex() {
         return nodeIndex;

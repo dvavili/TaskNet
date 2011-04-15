@@ -32,7 +32,7 @@ public class Preferences {
 	public static final int numClockTypes = 3;
 	public static final String[] clockTypes = { "LOGICAL", "VECTOR", "DEFAULT" };
 	public static int host_index;
-	public static String logger_name;
+	public static String LOGGER_NAME;
 	public static Integer host_initial_load;
 	public static Integer host_reserved_load;
 	public static String COORDINATOR;
@@ -44,7 +44,7 @@ public class Preferences {
 	public static final int TOTAL_LOAD_AT_NODE = 100;
 	public static final int MINIMUM_LOAD_REQUEST = 0;
 	public static final int NUMBER_OF_RETRIES_BEFORE_QUITTING = 3;
-	public static final int WAIT_TIME_BEFORE_RETRYING = 10000;
+	public static final int WAIT_TIME_BEFORE_RETRYING = 100;
 	// public static ArrayList<Node> nodesList;
 	public static HashMap<String, InetAddress> node_addresses;
 	public static HashMap<String, Node> nodes;
@@ -64,7 +64,7 @@ public class Preferences {
 		try {
 			Properties prop = new Properties();
 			prop.load(new FileInputStream(configuration_filename));
-			logger_name = prop.getProperty("LOGGER");
+			LOGGER_NAME = prop.getProperty("LOGGER");
 			COORDINATOR = prop.getProperty("COORDINATOR");
 			StringTokenizer node_string = new StringTokenizer(
 					prop.getProperty("NAMES"), ",");
@@ -77,7 +77,7 @@ public class Preferences {
 							prop.getProperty("node." + local_host
 									+ ".reserved_load"));
 				}
-				if (!node_name.equalsIgnoreCase(logger_name)) {
+				if (!node_name.equalsIgnoreCase(LOGGER_NAME)) {
 					Node node = new Node(node_name, i,
 							InetAddress.getByName(prop.getProperty("node."
 									+ node_name + ".ip")));

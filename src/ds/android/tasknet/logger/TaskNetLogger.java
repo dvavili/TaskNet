@@ -14,46 +14,61 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.util.Enumeration;
-import java.util.Vector;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.BorderFactory;
-import javax.swing.ButtonGroup;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 
 /**
  *
  * @author Divya
  */
-public class Coordinator {
+public class TaskNetLogger implements ActionListener {
 
-    JFrame frame;
-    JScrollPane scrollPane;
-    JPanel mainPanel, batteryPanel, memoryPanel, cpuLoadPanel, scrollPanel, panel;
-    static Vector<String> vClients;
-    JProgressBar batteryProgressBars[],memoryProgressBars[],cpuLoadProgressBars[];
+    JButton btnShowLog;
+    JFrame frame, nodeFrames[];
+    JScrollPane scrollPane, nodeScrollPane[];
+    JPanel mainPanel, batteryPanel, clientPanel, memoryPanel, cpuLoadPanel;
+    JPanel scrollPanel, nodeNamePanel, nodePanel[], panel;
+    JProgressBar batteryProgressBars[], memoryProgressBars[], cpuLoadProgressBars[];
     int numberOfClients = 0;
-    JTextArea taLogArea;
-    TitledBorder batteryTitle,memoryTitle,cpuLoadTitle;
+    JTextField tfNodeName;
+    JTextArea taLogArea, taNodeLogArea[];
+    TitledBorder batteryTitle, memoryTitle, cpuLoadTitle;
+    Map<String, JTextArea> nodeLogTextAreaMap;
+    Map<String, JFrame> nodeFrameMap;
+    Map<String, ArrayList<String>> nodeLogs;
     MessagePasser mp;
 
-    public Coordinator(String host_name, String conf_file) {
+    public TaskNetLogger(String host_name, String conf_file) {
+
         Preferences.setHostDetails(conf_file, host_name);
         mp = new MessagePasser(conf_file, host_name);
         numberOfClients = Preferences.nodes.size();
 
         frame = new JFrame("TaskNet - Logger");
-        vClients = new Vector<String>();
+
+        nodeNamePanel = new JPanel();
+        nodeNamePanel.add(new JLabel("Node Name: "));
+        tfNodeName = new JTextField(20);
+        btnShowLog = new JButton("Show Logs");
+        btnShowLog.addActionListener(this);
+        nodeNamePanel.add(tfNodeName);
+        nodeNamePanel.add(btnShowLog);
+
         mainPanel = new JPanel();
-        mainPanel.add(new JLabel("Communication Logs:"));
         panel = new JPanel(new FlowLayout());
 
         taLogArea = new JTextArea(10, 50);
@@ -61,6 +76,7 @@ public class Coordinator {
         scrollPane = new JScrollPane(taLogArea,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        mainPanel.add(nodeNamePanel);
         mainPanel.add(scrollPane);
 
         batteryTitle = BorderFactory.createTitledBorder("Battery Life of Nodes");
@@ -84,7 +100,20 @@ public class Coordinator {
         frame.setResizable(false);
         frame.setSize(800, 500);
 
+        createNodeLogFrames();
+
         listenForIncomingMessages();
+    }
+
+    public void actionPerformed(ActionEvent e) {
+        String nodeName = tfNodeName.getText();
+        if (nodeName.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Enter Node name", "Node name", JOptionPane.WARNING_MESSAGE);
+        } else if (!Preferences.node_names.containsValue(nodeName)) {
+            JOptionPane.showMessageDialog(null, "Node does not exist in the system", "Node name", JOptionPane.WARNING_MESSAGE);
+        } else {
+            nodeFrameMap.get(nodeName).setVisible(true);
+        }
     }
 
     private void listenForIncomingMessages() {
@@ -93,7 +122,6 @@ public class Coordinator {
          * displays them to user
          */
         (new Thread() {
-
             @Override
             public void run() {
                 while (true) {
@@ -104,34 +132,32 @@ public class Coordinator {
                             if (msg instanceof MulticastMessage) {
                                 switch (((MulticastMessage) msg).getMessageType()) {
                                     case TASK_ADV:
-                                        taLogArea.append("Received task advertisement\n");
-                                        Node nodeProfile = Preferences.nodes.get(Preferences.logger_name);
+                                        taLogArea.append("\nReceived task advertisement");
+                                        Node nodeProfile = Preferences.nodes.get(Preferences.LOGGER_NAME);
                                         Message profileMsg = new Message(((MulticastMessage) msg).getSource(), "", "", nodeProfile);
                                         profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
                                         try {
                                             mp.send(profileMsg);
                                         } catch (InvalidMessageException ex) {
-                                            Logger.getLogger(LoggerClass.class.getName()).log(Level.SEVERE, null, ex);
+                                            ex.printStackTrace();
                                         }
                                         break;
                                 }
                             } else {
                                 switch (msg.getNormalMsgType()) {
-                                    case NORMAL:
-                                        taLogArea.append(msg.getData() + "\n");
-                                        break;
-                                    case PROFILE_XCHG:
-                                        Node profileOfNode = (Node)msg.getData();
-                                        taLogArea.append(profileOfNode + "\n");
+                                    case LOG_MESSAGE:
+                                        nodeLogs.get(msg.getLogSource()).add(msg.getData().toString());
+                                        taLogArea.append(msg.getLogSource() + ": " + msg.getData());
+                                        nodeLogTextAreaMap.get(msg.getLogSource()).append(msg.getData().toString());
                                         break;
                                     case PROFILE_UPDATE:
                                         System.out.println("Receiving update info");
-                                        Node nodeToBeUpdated = (Node)msg.getData();
+                                        Node nodeToBeUpdated = (Node) msg.getData();
                                         synchronized (Preferences.nodes) {
-                                            int mem = (int)nodeToBeUpdated.getMemoryCapacity() - 1;
-                                            int procload = (int)nodeToBeUpdated.getProcessorLoad() - 1;
+                                            int mem = (int) nodeToBeUpdated.getMemoryCapacity() - 1;
+                                            int procload = (int) nodeToBeUpdated.getProcessorLoad() - 1;
                                             int batterylevel = nodeToBeUpdated.getBatteryLevel() - 1;
-                                            (Preferences.nodes.get(nodeToBeUpdated.getName())).update(mem,procload,batterylevel);
+                                            (Preferences.nodes.get(nodeToBeUpdated.getName())).update(mem, procload, batterylevel);
                                         }
                                         repaintPanel();
                                         break;
@@ -153,36 +179,7 @@ public class Coordinator {
         mp.start();
     }
 
-    public static void addClient(String clientName) {
-        synchronized (vClients) {
-            vClients.add(clientName);
-            vClients.notifyAll();
-        }
-    }
-
-    /**
-     * Input:
-     * ButtonGroup: Radio button group
-     *
-     * Output:
-     * String: Selected radio button text in the input ButtonGroup
-     */
-    public String getSelection(ButtonGroup group) {
-        for (Enumeration e = group.getElements(); e.hasMoreElements();) {
-            JRadioButton b = (JRadioButton) e.nextElement();
-            if (b.getModel() == group.getSelection()) {
-                return b.getText().toLowerCase();
-            }
-        }
-        return null;
-    }
-
-//    public static void main(String[] args) {
-//        new TaskNetLogger();
-////        (new InitialConfiguration()).addClients();
-//    }
     private void initComponents() {
-//        numberOfClients = vClients.size();
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(15, 15, 15, 15);
         gbc.gridx = 0;
@@ -221,7 +218,7 @@ public class Coordinator {
         for (int i = 0; i < numberOfClients; i++) {
             memoryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 100);
             String nodeName = Preferences.node_names.get(i);
-            memoryProgressBars[i].setValue((int)Preferences.nodes.get(nodeName).getMemoryCapacity());
+            memoryProgressBars[i].setValue((int) Preferences.nodes.get(nodeName).getMemoryCapacity());
         }
 
         for (int i = 0; i < numberOfClients; i++) {
@@ -247,7 +244,7 @@ public class Coordinator {
         for (int i = 0; i < numberOfClients; i++) {
             cpuLoadProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 100);
             String nodeName = Preferences.node_names.get(i);
-            cpuLoadProgressBars[i].setValue((int)Preferences.nodes.get(nodeName).getProcessorLoad());
+            cpuLoadProgressBars[i].setValue((int) Preferences.nodes.get(nodeName).getProcessorLoad());
         }
 
         for (int i = 0; i < numberOfClients; i++) {
@@ -266,29 +263,6 @@ public class Coordinator {
         panel.add(cpuLoadPanel);
     }
 
-    private void listenForClients() {
-        (new Thread() {
-
-            @Override
-            public void run() {
-                while (true) {
-                    synchronized (vClients) {
-                        if (numberOfClients == vClients.size()) {
-                            try {
-                                vClients.wait();
-                            } catch (InterruptedException ex) {
-                                Logger.getLogger(Coordinator.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                        } else {
-                            System.out.println("In repaint");
-                            repaintPanel();
-                        }
-                    }
-                }
-            }
-        }).start();
-    }
-
     private void repaintPanel() {
         batteryPanel.removeAll();
         cpuLoadPanel.removeAll();
@@ -300,24 +274,39 @@ public class Coordinator {
         memoryPanel.revalidate();
         panel.revalidate();
     }
-//    private void addClients() {
-//        (new Thread() {
-//
-//            @Override
-//            public void run() {
-//                while (true) {
-//                    try {
-//                        Thread.sleep(1000);
-//                        synchronized (vClients) {
-//                            vClients.add("alice");
-//                            System.out.println("Adding alice");
-//                            vClients.notifyAll();
-//                        }
-//                    } catch (InterruptedException ex) {
-//                        Logger.getLogger(InitialConfiguration.class.getName()).log(Level.SEVERE, null, ex);
-//                    }
-//                }
-//            }
-//        }).start();
-//    }
+
+    private void createNodeLogFrames() {
+
+        taNodeLogArea = new JTextArea[numberOfClients];
+        nodeLogTextAreaMap = new HashMap<String, JTextArea>();
+        nodeScrollPane = new JScrollPane[numberOfClients];
+        nodePanel = new JPanel[numberOfClients];
+        nodeFrames = new JFrame[numberOfClients];
+        nodeFrameMap = new HashMap<String, JFrame>();
+
+        //Setting up logs list
+        nodeLogs = new HashMap<String, ArrayList<String>>();
+        for (int i = 0; i < numberOfClients; i++) {
+            nodeLogs.put(Preferences.node_names.get(i), new ArrayList<String>());
+
+            taNodeLogArea[i] = new JTextArea(10, 50);
+            taNodeLogArea[i].setEditable(false);
+            nodeLogTextAreaMap.put(Preferences.node_names.get(i), taNodeLogArea[i]);
+            nodeScrollPane[i] = new JScrollPane(taNodeLogArea[i],
+                    JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                    JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+            nodePanel[i] = new JPanel(new FlowLayout());
+            nodePanel[i].add(new JLabel(Preferences.node_names.get(i).toUpperCase()));
+            nodePanel[i].add(nodeScrollPane[i]);
+
+            nodeFrames[i] = new JFrame("Logs: " + Preferences.node_names.get(i).toUpperCase());
+            nodeFrameMap.put(Preferences.node_names.get(i), nodeFrames[i]);
+            nodeFrames[i].setContentPane(nodePanel[i]);
+            nodeFrames[i].setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+            nodeFrames[i].setVisible(false);
+            nodeFrames[i].setResizable(false);
+            nodeFrames[i].setSize(575, 250);
+        }
+    }
 }

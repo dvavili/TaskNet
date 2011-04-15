@@ -162,7 +162,7 @@ public class MessagePasser extends Thread {
             synchronized (outQueue) {
                 if (!outQueue.isEmpty()) {
                     message = outQueue.remove(0);
-                    if (!message.getDest().equalsIgnoreCase(Preferences.logger_name)) {
+                    if (!message.getDest().equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                         numOfTimesOutDelayed = 0;
                         outDelayed = true;
                     }
@@ -321,7 +321,7 @@ public class MessagePasser extends Thread {
             if (Preferences.logDrop) {
                 synchronized (outQueue) {
                     msg.setLogMessage("Message from " + host_name + " to " + msg.getDest() + " dropped");
-                    outQueue.add(new Message(Preferences.logger_name, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
                 }
             }
             return;
@@ -332,7 +332,7 @@ public class MessagePasser extends Thread {
                 if (Preferences.logDelay) {
                     synchronized (outQueue) {
                         msg.setLogMessage("Message from " + host_name + " to " + msg.getDest() + " delayed");
-                        outQueue.add(new Message(Preferences.logger_name, "log", "log", msg));
+                        outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
                     }
                 }
             }
@@ -345,17 +345,17 @@ public class MessagePasser extends Thread {
                 }
                 if (Preferences.logDuplicate) {
                     msg.setLogMessage("Message from " + host_name + " to " + msg.getDest() + " duplicated");
-                    outQueue.add(new Message(Preferences.logger_name, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
                 }
             }
         } else {
 //            System.out.println("Sent message added to queue");
             synchronized (outQueue) {
                 outQueue.add(msg);
-                if (Preferences.logEvent && !msg.getDest().equalsIgnoreCase(Preferences.logger_name)) {
+                if (Preferences.logEvent && !msg.getDest().equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                     msg.setToBeLogged(true);
                     msg.setLogMessage("Message sent from " + host_name + " to " + msg.getDest());
-                    outQueue.add(new Message(Preferences.logger_name, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
                 }
             }
         }
@@ -435,7 +435,7 @@ public class MessagePasser extends Thread {
             if (Preferences.logDrop || msg.isToBeLogged()) {
                 synchronized (outQueue) {
                     msg.setLogMessage("Received message dropped in " + host_name);
-                    outQueue.add(new Message(Preferences.logger_name, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
                 }
             }
             return;
@@ -446,7 +446,7 @@ public class MessagePasser extends Thread {
                 if (Preferences.logDelay || msg.isToBeLogged()) {
                     synchronized (outQueue) {
                         msg.setLogMessage("Received message delayed in " + host_name);
-                        outQueue.add(new Message(Preferences.logger_name, "log", "log", msg));
+                        outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
                     }
                 }
             }
@@ -460,7 +460,7 @@ public class MessagePasser extends Thread {
                 }
                 if (Preferences.logDuplicate || msg.isToBeLogged()) {
                     msg.setLogMessage("Received message duplicated in " + host_name);
-                    outQueue.add(new Message(Preferences.logger_name, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
                 }
             }
         } else {
@@ -469,7 +469,7 @@ public class MessagePasser extends Thread {
                 inQueue.add(msg);
                 if (Preferences.logEvent || msg.isToBeLogged()) {
                     msg.setLogMessage("Message received in " + host_name);
-                    outQueue.add(new Message(Preferences.logger_name, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
                 }
             }
         }

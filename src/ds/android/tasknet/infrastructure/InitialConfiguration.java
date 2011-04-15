@@ -4,9 +4,9 @@
  */
 package ds.android.tasknet.infrastructure;
 
+import ds.android.tasknet.application.SampleApplication;
 import ds.android.tasknet.config.Preferences;
-import ds.android.tasknet.logger.LoggerClass;
-import ds.android.tasknet.logger.Coordinator;
+import ds.android.tasknet.logger.TaskNetLogger;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -126,12 +126,13 @@ public class InitialConfiguration implements ActionListener {
                 JOptionPane.showMessageDialog(null, "Local node name", "Enter the local node name", JOptionPane.WARNING_MESSAGE);
             } else {
                 frame.dispose();
-                if (getLocalNodeName().equalsIgnoreCase("coordinator")) {
-                    Coordinator coordinator = new Coordinator(getLocalNodeName(), getFileName());
+                if (getLocalNodeName().equalsIgnoreCase("logger")) {
+                    TaskNetLogger coordinator = new TaskNetLogger(getLocalNodeName(), getFileName());
                     coordinator.startListening();
                 } else {
-                    MulticastInfrastructure mis = new MulticastInfrastructure(getLocalNodeName(), getFileName(), getSelection(bgClockType));
-                    mis.startListening();
+//                    TaskDistributor mis = new TaskDistributor(getLocalNodeName(), getFileName(), getSelection(bgClockType));
+//                    mis.startListening();
+                    SampleApplication sa = new SampleApplication(getLocalNodeName(), getFileName(), getSelection(bgClockType));
                 }
             }
         }
