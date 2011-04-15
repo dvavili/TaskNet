@@ -374,9 +374,9 @@ public class TaskDistributor {
     }
 
     public void distributeTask(Integer taskLoadFromUI) {
-        String node = "";
-        String kind = "";
-        String msgid = "";
+        String nodeName = "";
+        String msgKind = "";
+        String msgId = "";
         taskNum++;
         String taskId = host + taskNum;
         Task newTask = new Task(taskLoadFromUI, taskId, host);
@@ -385,30 +385,30 @@ public class TaskDistributor {
         synchronized (taskLookups) {
             taskLookups.put(taskId, taskLookup);
         }
-        MulticastMessage mMsg = new MulticastMessage(node, kind, msgid,
-                newTask, mp.getClock(), true, MulticastMessage.MessageType.TASK_ADV, host);
 
-        sendAndRetryTaskAdv(taskLookup, mMsg);
+        sendAndRetryTaskAdv(taskLookup, nodeName, msgKind, msgId, newTask);
         Preferences.crashNode = "";
     }
 
-    private void sendAndRetryTaskAdv(final TaskLookup taskLookup, final Message mMsg) {
+    private void sendAndRetryTaskAdv(final TaskLookup taskLookup, final String nodeName,
+            final String msgKind, final String msgId, final Task newTask) {
 
         (new Thread() {
 
             public void run() {
                 //synchronized (taskLookup) {
                 //if it still hasn't exhausted its retry and still hasn't got enough reply
-                Message advMsg = mMsg;
+                MulticastMessage advMsg;
                 while (taskLookup.getStatus() == Preferences.TASK_STATUS.ADVERTISED
                         && taskLookup.getRetry() < Preferences.NUMBER_OF_RETRIES_BEFORE_QUITTING) {
 
                     logMessage("Tasklookup status : " + taskLookup.getStatus() + " Retries: " + taskLookup.getRetry());
                     //send task request advertisement, ask for bid
                     try {
-                        mp.send(advMsg);
-                        advMsg = new MulticastMessage(mMsg.getDest(), mMsg.getKind(), mMsg.getId(),
-                                mMsg.getData(), mp.getClock(), true, MulticastMessage.MessageType.TASK_ADV, host);
+                        advMsg = new MulticastMessage(nodeName, msgKind, msgId,
+                                newTask, mp.getClock(), true, MulticastMessage.MessageType.TASK_ADV, host);
+                        mp.send(advMsg);                        
+                        System.out.println("Multicast time: " + advMsg.getClockService().getTime());
                     } catch (InvalidMessageException e) {
                         e.printStackTrace();
                     }

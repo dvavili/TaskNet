@@ -378,10 +378,12 @@ public class MessagePasser extends Thread {
                 ois = new ObjectInputStream(bis);
                 final Message msg = (Message) (ois.readObject());
                 if (msg instanceof MulticastMessage) {
-                    System.out.println("Getting multicast msg");
+                    if(((MulticastMessage)msg).getMessageType()==MulticastMessage.MessageType.TASK_ADV)
+                    System.out.println("Getting Task Advertisement: "
+                            + ((ClockService)((MulticastMessage)msg).getClockService()).getTime());
                     deliverMessage((MulticastMessage) msg);
                 } else {
-                    System.out.println("Getting normal message");
+                    System.out.println("Getting Normal message");
                     processReceivedMessage(msg);
                 }
             } catch (InvalidMessageException ex) {
