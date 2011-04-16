@@ -11,7 +11,6 @@ import java.io.Serializable;
  * Yash Pathak - ypathak@andrew.cmu.edu
  *
  */
-
 /**
  * Message:
  * Wraps the 'object' to be sent with destination, kind and id details
@@ -20,12 +19,15 @@ public class Message implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public enum NormalMsgType { NORMAL, PROFILE_XCHG, TASK_ADV, PROFILE_UPDATE, DISTRIBUTED_TASK, TASK_RESULT };
+    public enum NormalMsgType {
 
+        NORMAL, PROFILE_XCHG, TASK_ADV, PROFILE_UPDATE, DISTRIBUTED_TASK, TASK_RESULT, LOG_MESSAGE
+    };
     protected Serializable data;
     protected String destination;
     protected String kind;
     protected String id;
+    protected String logSource;
     protected String logMessage;
     protected Boolean log;
     protected NormalMsgType normalMsgType;
@@ -36,15 +38,15 @@ public class Message implements Serializable {
         this.destination = dest;
         this.id = id;
         log = false;
-        logMessage = "";
+        logSource = "";
         normalMsgType = NormalMsgType.NORMAL;
     }
 
-    public void setNormalMsgType(NormalMsgType type){
+    public void setNormalMsgType(NormalMsgType type) {
         normalMsgType = type;
     }
 
-    public NormalMsgType getNormalMsgType(){
+    public NormalMsgType getNormalMsgType() {
         return normalMsgType;
     }
 
@@ -64,26 +66,34 @@ public class Message implements Serializable {
         return data;
     }
 
-    public void setLogMessage(String status){
-        logMessage = status;
+    public void setLogSource(String src) {
+        logSource = src;
     }
 
-    public String getLogMessage(){
+    public String getLogSource() {
+        return logSource;
+    }
+
+    public void setLogMessage(String logMsg) {
+        logMessage = logMsg;
+    }
+
+    public String getLogMessage() {
         return logMessage;
     }
 
-    public boolean isToBeLogged(){
+    public boolean isToBeLogged() {
         return log;
     }
 
-    public void setToBeLogged(boolean flag){
+    public void setToBeLogged(boolean flag) {
         log = flag;
     }
 
-    public void setDest(String dest){
+    public void setDest(String dest) {
         destination = dest;
     }
-   
+
     private void writeObject(ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
     }
