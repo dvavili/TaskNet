@@ -14,6 +14,7 @@ public class Task implements Serializable {
 
     private static final long serialVersionUID = 1L;
     public Integer taskLoad;
+    public Integer promisedTaskLoad;
     public String taskId;
     public String taskSrc;
     Integer sequenceNumber;
@@ -23,6 +24,7 @@ public class Task implements Serializable {
         taskLoad = load;
         taskSrc = src;
         sequenceNumber = -1;
+        promisedTaskLoad = 0;
     }
 
     public String getSource() {
@@ -48,4 +50,14 @@ public class Task implements Serializable {
     public void setSeqNumber(Integer sNum) {
         sequenceNumber = sNum;
     }
+
+	public Integer getPromisedTaskLoad() {
+		return promisedTaskLoad;
+	}
+
+	public void setPromisedTaskLoad(Integer promisedTaskLoad) {
+		this.promisedTaskLoad = promisedTaskLoad;
+	}
+    
+    
 }

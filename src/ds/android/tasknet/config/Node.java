@@ -24,6 +24,7 @@ public class Node implements Serializable {
     float processorLoad;
     Integer batteryLevel;
     Map<String, Task> acceptedTasks = new HashMap<String, Task>();
+    int promisedLoad;
 
     Node(String name, int index, InetAddress address) {
         nodeName = name;
@@ -32,6 +33,7 @@ public class Node implements Serializable {
         memoryCapacity = 0;
         processorLoad = 0;
         batteryLevel = 0;
+        promisedLoad = 0;
     }
 
     public int getIndex() {
@@ -86,7 +88,26 @@ public class Node implements Serializable {
     	this.acceptedTasks.remove(taskId);
     }
     
-    @Override
+    public Task getAcceptedTaskByTaskId(String taskId) {
+    	return this.acceptedTasks.get(taskId);
+    }
+    
+    public int getPromisedLoad() {
+		return promisedLoad;
+	}
+
+	public void setPromisedLoad(int promisedLoad) {
+		this.promisedLoad = promisedLoad;
+	}
+	
+	public void incrPromisedLoad(int promisedLoad) {
+		this.promisedLoad += promisedLoad;
+	}
+
+	public void decrPromisedLoad(int promisedLoad) {
+		this.promisedLoad -= promisedLoad;
+	}
+	@Override
     public String toString() {
         String str = "";
         str += "Name: " + nodeName;

@@ -10,9 +10,9 @@ public class TaskAdvReply implements Serializable {
     private String TaskAdvReplyId;
     private String taskId;
     private Node node;
-    private float loadCanServe;
+    private int loadCanServe;
 
-    public TaskAdvReply(String TaskAdvReplyId, String taskId, Node node, float loadCanServe) {
+    public TaskAdvReply(String TaskAdvReplyId, String taskId, Node node, int loadCanServe) {
         super();
         this.TaskAdvReplyId = TaskAdvReplyId;
         this.node = node;
@@ -44,11 +44,11 @@ public class TaskAdvReply implements Serializable {
         this.taskId = taskId;
     }
 
-    public float getLoadCanServe() {
+    public int getLoadCanServe() {
         return loadCanServe;
     }
 
-    public void setLoadCanServe(float loadCanServe) {
+    public void setLoadCanServe(int loadCanServe) {
         this.loadCanServe = loadCanServe;
     }
 

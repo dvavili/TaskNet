@@ -91,22 +91,30 @@ public class TaskDistributor {
                                     case TASK_ADV:
                                         Task receivedTask = (Task) msg.getData();
                                         synchronized (Preferences.nodes) {
-                                            logMessage("Received task advertisement from: " + ((MulticastMessage)msg).getSource());
+                                            logMessage("Received task advertisement from: " 
+                                            		+ ((MulticastMessage)msg).getSource());
                                             Node host_node = Preferences.nodes.get(host);
                                             float remaining_load = Preferences.TOTAL_LOAD_AT_NODE
-                                                    - (receivedTask.taskLoad + host_node.getProcessorLoad());
-                                            float loadCanServe = 0;
+                                                    - (receivedTask.taskLoad 
+                                                    		/*+ host_node.getProcessorLoad()*/
+                                                    		+ host_node.getPromisedLoad()
+                                                    		);
+                                            int loadCanServe = 0;
                                             if (remaining_load > Preferences.host_reserved_load) {
                                                 loadCanServe = receivedTask.taskLoad;
                                             } else {
                                                 // Need to change this to avoid fragmentation
                                                 loadCanServe = Preferences.TOTAL_LOAD_AT_NODE
-                                                        - (Preferences.host_reserved_load + host_node.getProcessorLoad());
+                                                        - (Preferences.host_reserved_load 
+                                                        		+ host_node.getPromisedLoad());
                                             }
                                             if (loadCanServe > Preferences.MINIMUM_LOAD_REQUEST) {
                                                 Integer tempTaskAdvReplyId = ++taskAdvReplyId;
-                                                String tempTaskAdvReplyIdStr = host_node.getName() + tempTaskAdvReplyId;
+                                                String tempTaskAdvReplyIdStr = host_node.getName() 
+                                                	+ tempTaskAdvReplyId;
+                                                receivedTask.setPromisedTaskLoad(loadCanServe);
                                                 host_node.addToAcceptedTask(tempTaskAdvReplyIdStr, receivedTask);
+                                                host_node.incrPromisedLoad(loadCanServe);
                                                 TaskAdvReply taskAdvReply =
                                                         new TaskAdvReply(tempTaskAdvReplyIdStr, receivedTask.getTaskId(), host_node, loadCanServe);
                                                 Message profileMsg = new Message(((MulticastMessage) msg).getSource(),
@@ -116,6 +124,7 @@ public class TaskDistributor {
                                                     mp.send(profileMsg);
                                                 } catch (InvalidMessageException ex) {
                                                     host_node.removeFromAcceptedTask(tempTaskAdvReplyIdStr);
+                                                    host_node.decrPromisedLoad(loadCanServe);
                                                     ex.printStackTrace();
                                                 }
                                                 logMessage("Sent message profile for task: "
@@ -165,9 +174,14 @@ public class TaskDistributor {
                                         taskResults.put(distTask.getTaskId(), tempResults);
 //                                        }
                                         Node host_node = Preferences.nodes.get(host);
+                                      //decrease promise
+                                        if(host_node.getAcceptedTaskByTaskId(taskChunk.getTaskAdvReplyId()) != null) {
+                                        	host_node.decrPromisedLoad(
+                                        			host_node.getAcceptedTaskByTaskId(
+                                        					taskChunk.getTaskAdvReplyId()).getPromisedTaskLoad());
+                                        }
                                         host_node.removeFromAcceptedTask(taskChunk.getTaskAdvReplyId());
-                                        //decrease promise
-
+                                        
                                         logMessage(result.getTaskResult().toString());
                                         Message resultMsg = new Message(distTask.getSource(), "", "", result);
                                         resultMsg.setNormalMsgType(Message.NormalMsgType.TASK_RESULT);

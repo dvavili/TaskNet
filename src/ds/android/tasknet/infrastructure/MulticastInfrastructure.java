@@ -66,6 +66,8 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
     JButton btnAdvertiseTask;
     MessagePasser mp;
     String host;
+    String conf_file;
+    String clockType;
     Properties prop;
     ClockFactory.ClockType clock;
     public static int taskNum = 0;
@@ -91,7 +93,9 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
             clock = ClockFactory.ClockType.VECTOR;
             mp = new MessagePasser(conf_file, host_name, ClockFactory.ClockType.VECTOR, Preferences.nodes.size());
         }
-        host = host_name;
+        this.host = host_name;
+        this.conf_file = conf_file;
+        this.clockType = clockType;
         taskLookups = new HashMap<String, TaskLookup>();
         buildUI(conf_file);
     }
@@ -121,7 +125,7 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
         numOfNodes = nodes.countTokens();
         for (int i = 0; i < numOfNodes; i++) {
             String nodeStr = nodes.nextToken();
-            if (nodeStr.equalsIgnoreCase(host) || nodeStr.equalsIgnoreCase(Preferences.logger_name)) {
+            if (nodeStr.equalsIgnoreCase(host) || nodeStr.equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                 numOfNodes--;
                 host_index = i;
                 if (i < numOfNodes) {
@@ -185,23 +189,32 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                         synchronized (Preferences.nodes) {
                                             taMessages.append("Received task advertisement from: \n" + msg.getId());
                                             Node host_node = Preferences.nodes.get(host);
+                                            //now we are simulating load on node through promosedLoad
+                                            //which could be different than actual load
                                             float remaining_load = Preferences.TOTAL_LOAD_AT_NODE
-                                                    - (receivedTask.taskLoad + host_node.getProcessorLoad());
-                                            float loadCanServe = 0;
+                                                    - (receivedTask.taskLoad 
+                                                    		/*+ host_node.getProcessorLoad()*/
+                                                    		+ host_node.getPromisedLoad()
+                                                    		);
+                                            int loadCanServe = 0;
                                             if (remaining_load > Preferences.host_reserved_load) {
                                                 loadCanServe = receivedTask.taskLoad;
                                             } else {
                                                 // Need to change this to avoid fragmentation
                                                 loadCanServe = Preferences.TOTAL_LOAD_AT_NODE
-                                                        - (Preferences.host_reserved_load + host_node.getProcessorLoad());
+                                                        - (Preferences.host_reserved_load 
+                                                        		+ host_node.getPromisedLoad());
                                             }
 
                                             if (loadCanServe > Preferences.MINIMUM_LOAD_REQUEST) {
                                                 Integer tempTaskAdvReplyId = ++taskAdvReplyId;
-                                                String tempTaskAdvReplyIdStr = host_node.getName() + tempTaskAdvReplyId;
+                                                String tempTaskAdvReplyIdStr = host_node.getName() 
+                                                	+ tempTaskAdvReplyId;
+                                                receivedTask.setPromisedTaskLoad(loadCanServe);
                                                 host_node.addToAcceptedTask(tempTaskAdvReplyIdStr, receivedTask);
-                                                TaskAdvReply taskAdvReply =
-                                                        new TaskAdvReply(tempTaskAdvReplyIdStr, receivedTask.getTaskId(), host_node, loadCanServe);
+                                                host_node.incrPromisedLoad(loadCanServe);
+                                                TaskAdvReply taskAdvReply = new TaskAdvReply(tempTaskAdvReplyIdStr, 
+                                                        		receivedTask.getTaskId(), host_node, loadCanServe);
                                                 Message profileMsg = new Message(((MulticastMessage) msg).getSource(),
                                                         "", "", taskAdvReply);
                                                 profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
@@ -209,13 +222,14 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                                     mp.send(profileMsg);
                                                 } catch (InvalidMessageException ex) {
                                                     host_node.removeFromAcceptedTask(tempTaskAdvReplyIdStr);
+                                                    host_node.decrPromisedLoad(loadCanServe);
                                                     ex.printStackTrace();
                                                 }
                                                 taMessages.append("Sent message profile for task: "
                                                         + receivedTask.taskId + " " + remaining_load
                                                         + "\n");
                                             } else {
-                                                taMessages.append("Node Overloaded: " + receivedTask.taskId + " " + loadCanServe + "\n");
+                                                taMessages.append("Node Overloaded: " + receivedTask.taskId + " " + loadCanServe); 
                                             }
                                         }
                                         break;
@@ -259,16 +273,21 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                                             taskResults.put(distTask.getTaskId(), tempResults);
 //                                        }
                                         Node host_node = Preferences.nodes.get(host);
-                                        host_node.removeFromAcceptedTask(taskChunk.getTaskAdvReplyId());
                                         //decrease promise
-
+                                        if(host_node.getAcceptedTaskByTaskId(taskChunk.getTaskAdvReplyId()) != null) {
+                                        	host_node.decrPromisedLoad(
+                                        			host_node.getAcceptedTaskByTaskId(
+                                        					taskChunk.getTaskAdvReplyId()).getPromisedTaskLoad());
+                                        }
+                                        host_node.removeFromAcceptedTask(taskChunk.getTaskAdvReplyId());                                        
                                         taMessages.append(result.getTaskResult() + "\n");
                                         Message resultMsg = new Message(distTask.getSource(), "", "", result);
                                         resultMsg.setNormalMsgType(Message.NormalMsgType.TASK_RESULT);
                                         try {
                                             mp.send(resultMsg);
                                         } catch (InvalidMessageException ex) {
-                                            Logger.getLogger(MulticastInfrastructure.class.getName()).log(Level.SEVERE, null, ex);
+                                            Logger.getLogger(MulticastInfrastructure.class.getName())
+                                            	.log(Level.SEVERE, null, ex);
                                         }
                                         break;
                                     case TASK_RESULT:
@@ -306,14 +325,16 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                     for (Method m : mthds) {
                         mthdDef.put(m.getName(), m.getParameterTypes());
                     }
-                    if (gotTask.getParameters() != null && ((mthdDef.get(gotTask.getMethodName())).length != gotTask.getParameters().length)) {
+                    if (gotTask.getParameters() != null && ((mthdDef.get(gotTask.getMethodName())).length 
+                    		!= gotTask.getParameters().length)) {
                         System.out.println("Parameters don\'t match");
                     } else {
                         Class params[] = mthdDef.get(gotTask.getMethodName());
                         Object parameters[] = (Object[]) gotTask.getParameters();
                         try {
                             Method invokedMethod = cl.getMethod(gotTask.getMethodName(), params);
-                            return (Serializable) invokedMethod.invoke(new SampleApplication(), parameters);
+                            return (Serializable) invokedMethod.invoke(
+                            		new SampleApplication(host, conf_file, clockType), parameters);
                         } catch (IllegalArgumentException e) {
                             e.printStackTrace();
                         } catch (IllegalAccessException e) {
@@ -347,7 +368,8 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                     return;
                 }
 
-                int loadDistributed = (int) Math.ceil((taskToDistribute.getTaskLoad() > taskAdvReply.getLoadCanServe())
+                int loadDistributed = (int) Math.ceil((taskToDistribute.getTaskLoad() 
+                		> taskAdvReply.getLoadCanServe())
                         ? (taskAdvReply.getLoadCanServe()) : taskToDistribute.getTaskLoad());
 
                 //synchronized (taskLookups) {
@@ -376,7 +398,8 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
             private void addAndMergeResults(TaskResult taskResult) {
                 TaskLookup taskLookup = taskLookups.get(taskResult.getTaskId());
                 taskLookup.getTaskResults().put(taskResult.getSeqNumber(), taskResult);
-                if(taskLookup.getTask().getTaskLoad() <= 0 && taskLookup.getTaskGroup().size() == taskLookup.getTaskResults().size())
+                if(taskLookup.getTask().getTaskLoad() <= 0 && taskLookup.getTaskGroup().size() 
+                		== taskLookup.getTaskResults().size())
                     taskLookup.setStatus(Preferences.TASK_STATUS.RECEIVED_RESULTS);
                 //Merge results
                 if(taskLookup.getStatus() == Preferences.TASK_STATUS.RECEIVED_RESULTS){
@@ -404,7 +427,8 @@ public class MulticastInfrastructure implements ActionListener, ItemListener {
                         && taskChunk.getRetry() < Preferences.NUMBER_OF_RETRIES_BEFORE_QUITTING) {
 
                     try {
-                        taskLookups.get(((DistributedTask)taskToDistribute).getTaskId()).addToResultTracker(taskChunk.getSequenceNumber(), taskChunk.getTaskAdvReplyId());
+                        taskLookups.get(((DistributedTask)taskToDistribute).getTaskId())
+                        	.addToResultTracker(taskChunk.getSequenceNumber(), taskChunk.getTaskAdvReplyId());
                         mp.send(distMsg);
                         taskChunk.incrRetry();
                         Thread.sleep(Preferences.WAIT_TIME_BEFORE_RETRYING);
