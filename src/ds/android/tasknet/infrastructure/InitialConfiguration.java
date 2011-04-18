@@ -1,12 +1,6 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package ds.android.tasknet.infrastructure;
 
-import ds.android.tasknet.application.SampleApplication;
 import ds.android.tasknet.config.Preferences;
-import ds.android.tasknet.logger.TaskNetLogger;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -79,10 +73,7 @@ public class InitialConfiguration implements ActionListener {
         panel.add(local_node, gbc);
         gbc.gridx = 0;
         gbc.gridy = 2;
-//        panel.add(new JLabel("Clock Type:"), gbc);
-//        gbc.gridx = 1;
-//        gbc.gridy = 2;
-//        panel.add(radioClockPanel, gbc);
+
         gbc.gridx = 1;
         gbc.gridy = 3;
         panel.add(startButton, gbc);
@@ -127,12 +118,9 @@ public class InitialConfiguration implements ActionListener {
             } else {
                 frame.dispose();
                 if (getLocalNodeName().equalsIgnoreCase("logger")) {
-                    TaskNetLogger coordinator = new TaskNetLogger(getLocalNodeName(), getFileName());
-                    coordinator.startListening();
+                    new TaskNetLogger(getLocalNodeName(), getFileName());
                 } else {
-//                    TaskDistributor mis = new TaskDistributor(getLocalNodeName(), getFileName(), getSelection(bgClockType));
-//                    mis.startListening();
-                    SampleApplication sa = new SampleApplication(getLocalNodeName(), getFileName(), getSelection(bgClockType));
+                    new TaskNetNode(getLocalNodeName(), getFileName(), getSelection(bgClockType));
                 }
             }
         }

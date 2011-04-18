@@ -20,23 +20,25 @@ public class Node implements Serializable {
     String nodeName;
     Integer nodeIndex;
     InetAddress nodeAddress;
+    Integer nodePort;
     long memoryCapacity;
     float processorLoad;
     Integer batteryLevel;
     Map<String, Task> acceptedTasks = new HashMap<String, Task>();
     int promisedLoad;
 
-    Node(String name, int index, InetAddress address) {
+    public Node(String name, InetAddress address, Integer port) {
         nodeName = name;
-        nodeIndex = index;
+        nodeIndex = -1;
         nodeAddress = address;
+        nodePort = port;
         memoryCapacity = 0;
         processorLoad = 0;
         batteryLevel = 0;
         promisedLoad = 0;
     }
 
-    public int getIndex() {
+    public Integer getIndex() {
         return nodeIndex;
     }
 
@@ -46,6 +48,18 @@ public class Node implements Serializable {
 
     public InetAddress getAdrress() {
         return nodeAddress;
+    }
+
+    public void setNodeIndex(Integer nodeIndex) {
+        this.nodeIndex = nodeIndex;
+    }
+    
+    public Integer getNodePort() {
+        return nodePort;
+    }
+
+    public void setNodePort(Integer nodePort) {
+        this.nodePort = nodePort;
     }
 
     public long getMemoryCapacity() {

@@ -25,7 +25,7 @@ public class VectorClock extends ClockService {
 
     public VectorClock(int numberOfNodes) {
         vectorClock = new Vector<Integer>(numberOfNodes);
-        for(int i=0;i<numberOfNodes;i++){
+        for (int i = 0; i < numberOfNodes; i++) {
 //            System.out.println(i);
             vectorClock.add(i, 0);
         }
@@ -42,7 +42,7 @@ public class VectorClock extends ClockService {
         }
     }
 
-    public ClockService getClockService(){
+    public ClockService getClockService() {
         return new VectorClock(vectorClock);
     }
 
@@ -51,7 +51,7 @@ public class VectorClock extends ClockService {
         return vectorClock;
     }
 
-    public void setTime(Vector<Integer> vtime){
+    public void setTime(Vector<Integer> vtime) {
         vectorClock = vtime;
     }
 
@@ -59,18 +59,29 @@ public class VectorClock extends ClockService {
         return vectorClock.get(index);
     }
 
-    public void updateTime(ClockService c){
-        Vector<Integer> nodeClock = ((VectorClock)c).getTime();
-        for(int i=0;i<Preferences.nodes.size();i++){
-            if(i!=Preferences.host_index)
-                if(nodeClock.get(i)>vectorClock.get(i))
+    public void updateTime(ClockService c) {
+        Vector<Integer> nodeClock = ((VectorClock) c).getTime();
+        for (int i = 0; i < Preferences.nodes.size(); i++) {
+            if (i != Preferences.host_index) {
+                if (nodeClock.get(i) > vectorClock.get(i)) {
                     vectorClock.set(i, nodeClock.get(i));
+                }
+            }
         }
     }
 
-    public void print(){
+    public void update(Integer index) {
+        vectorClock.setSize(Math.max(vectorClock.size(), index + 1));
+        if(vectorClock.get(index)==null)
+            vectorClock.set(index, 0);
+        else
+            vectorClock.set(index, Math.max(vectorClock.get(index), 0));
+    }
+
+    public void print() {
         System.out.println(vectorClock);
     }
+
     private void writeObject(ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
     }

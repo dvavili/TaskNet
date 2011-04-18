@@ -1,18 +1,11 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package ds.android.tasknet.msgpasser;
 
 import ds.android.tasknet.clock.ClockService;
-import ds.android.tasknet.clock.VectorClock;
 import ds.android.tasknet.config.Preferences;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Vector;
 
 /**
  *
@@ -27,7 +20,6 @@ public class MulticastMessage extends TimeStampedMessage implements Serializable
     boolean[] msgReceived;
     MessageType msgType;
     String source;
-//    Vector<Integer> causalBarrier;
 
     public MulticastMessage(String dest, String kind, String id, Serializable data, ClockService c,
             boolean newTimeStamp, MessageType mType, String src) {
@@ -42,10 +34,6 @@ public class MulticastMessage extends TimeStampedMessage implements Serializable
         }
         msgType = mType;
         source = src;
-//        causalBarrier = new Vector<Integer>(Preferences.nodes.size());
-//        for(int i=0;i<Preferences.nodes.size();i++)
-//            causalBarrier.add(i, 0);
-//        causalBarrier.setElementAt(Preferences.host_index, ((VectorClock)clock).getTime(Preferences.host_index));
     }
 
     public MulticastMessage(MulticastMessage m, MessageType type) {
