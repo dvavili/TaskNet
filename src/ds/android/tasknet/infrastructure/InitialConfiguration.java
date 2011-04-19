@@ -1,7 +1,5 @@
 package ds.android.tasknet.infrastructure;
 
-import ds.android.tasknet.config.Preferences;
-import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -16,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
@@ -24,7 +21,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
 /**
@@ -69,7 +65,7 @@ public class InitialConfiguration implements ActionListener {
         panel.add(local_node, gbc);
         gbc.gridx = 0;
         gbc.gridy = 2;
-        panel.add(new JLabel("Choose your network interface:"), gbc);
+        panel.add(new JLabel("Choose the IP you want to use:"), gbc);
         ArrayList<String> nicNames = new ArrayList<String>();
         try {
             Enumeration<NetworkInterface> nic = NetworkInterface.getNetworkInterfaces();
@@ -91,7 +87,7 @@ public class InitialConfiguration implements ActionListener {
         panel.add(nicCombo,gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 4;
+        gbc.gridy = 3;
         panel.add(startButton, gbc);
 
         frame.setContentPane(panel);

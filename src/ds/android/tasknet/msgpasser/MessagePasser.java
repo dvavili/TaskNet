@@ -101,10 +101,8 @@ public class MessagePasser extends Thread {
                 host_port = Integer.parseInt(prop.getProperty("node." + local_name + ".port"));
                 udpServerSocket = new DatagramSocket(host_port);
             } else {
-
-                udpServerSocket = new DatagramSocket(new InetSocketAddress("127.0.0.1", 0));
-                host_ip = udpServerSocket.getLocalAddress();
-
+                udpServerSocket = new DatagramSocket();
+                host_ip = InetAddress.getByName(ipAddress);
                 host_port = udpServerSocket.getLocalPort();
                 System.out.println(host_name + " " + host_ip + " " + host_port);
             }
@@ -442,7 +440,7 @@ public class MessagePasser extends Thread {
             try {
                 udpPacketReceived = new DatagramPacket(receiveData, receiveData.length, host_ip, host_port);
                 udpServerSocket.setReceiveBufferSize(5000);
-                udpServerSocket.setSendBufferSize(5000);
+                udpServerSocket.setSendBufferSize(5000);                
                 udpServerSocket.receive(udpPacketReceived);
                 ByteArrayInputStream bis = new ByteArrayInputStream(udpPacketReceived.getData());
                 ois = new ObjectInputStream(bis);
@@ -457,14 +455,12 @@ public class MessagePasser extends Thread {
 
                 if (msg instanceof MulticastMessage) {
                     (new Thread() {
-
                         public void run() {
                             deliverMessage((MulticastMessage) msg);
                         }
                     }).start();
                 } else {
                     (new Thread() {
-
                         public void run() {
                             try {
                                 processReceivedMessage(msg);

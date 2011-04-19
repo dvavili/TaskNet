@@ -33,7 +33,6 @@ import ds.android.tasknet.msgpasser.Message;
 import ds.android.tasknet.msgpasser.MessagePasser;
 import java.net.InetAddress;
 import java.util.Calendar;
-import java.util.Collection;
 
 /**
  *
@@ -58,7 +57,8 @@ public class TaskNetLogger implements ActionListener {
     String host_name;
 
     public TaskNetLogger(String host_name, String conf_file) {
-        this.host_name = host_name;
+
+    	this.host_name = host_name;
         Preferences.setHostDetails(conf_file, host_name);
         try {
             mp = new MessagePasser(conf_file, host_name, InetAddress.getByName("127.0.0.1").getHostAddress());

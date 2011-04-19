@@ -90,7 +90,7 @@ public class Node implements Serializable {
     public void setBatteryLevel(int value) {
         batteryLevel = value;
     }
-    
+
     public void decrBatteryLevel(int value) {
         batteryLevel -= value;
     }
@@ -107,15 +107,15 @@ public class Node implements Serializable {
             this.acceptedTasks.put(taskAdvReplyId, task);
         }
     }
-    
+
     public void removeFromAcceptedTask(String taskId) {
         this.acceptedTasks.remove(taskId);
     }
-    
+
     public Task getAcceptedTaskByTaskId(String taskId) {
         return this.acceptedTasks.get(taskId);
     }
-    
+
     public int getPromisedLoad() {
         return promisedLoad;
     }
@@ -132,7 +132,6 @@ public class Node implements Serializable {
         this.promisedLoad -= promisedLoad;
     }
 
-    @Override
     public String toString() {
         String str = "";
         str += "Name: " + nodeName;
