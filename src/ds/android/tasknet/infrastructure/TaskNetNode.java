@@ -6,9 +6,10 @@ import ds.android.tasknet.distributor.TaskDistributor;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Properties;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -27,26 +28,19 @@ public class TaskNetNode implements ActionListener {
     JTextField tfMethodName, tfTaskLoad;
     JFrame mainFrame;
     JButton btnDistributeTask, btnExecuteLocalTask;
-    String host, configuration_file, clockType;
-    Properties prop;
+    String host, configuration_file;
     TaskDistributor distributor;
 
-    public TaskNetNode(String host_name, String conf_file, String clockType) {
-        prop = new Properties();
-        Preferences.setHostDetails(conf_file, host_name);
+    public TaskNetNode(String host_name, String conf_file){
         try {
-            prop.load(new FileInputStream(conf_file));
-        } catch (IOException ex) {
-            ex.printStackTrace();
+            Preferences.setHostDetails(conf_file, host_name);
+            host = host_name;
+            configuration_file = conf_file;
+            distributor = new TaskDistributor(host, configuration_file, InetAddress.getLocalHost().getHostAddress());
+            buildUI(conf_file);
+        } catch (UnknownHostException ex) {
+            Logger.getLogger(TaskNetNode.class.getName()).log(Level.SEVERE, null, ex);
         }
-        host = host_name;
-        configuration_file = conf_file;
-        this.clockType = clockType;
-
-        distributor = new TaskDistributor(host, configuration_file, clockType);
-//        distributor.startListening();
-
-        buildUI(conf_file);
     }
 
     void buildUI(String conf_file) {

@@ -7,6 +7,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.Serializable;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +31,7 @@ import ds.android.tasknet.config.Preferences;
 import ds.android.tasknet.exceptions.InvalidMessageException;
 import ds.android.tasknet.msgpasser.Message;
 import ds.android.tasknet.msgpasser.MessagePasser;
-import ds.android.tasknet.msgpasser.MulticastMessage;
+import java.net.InetAddress;
 
 /**
  *
@@ -58,7 +59,11 @@ public class TaskNetLogger implements ActionListener {
 
     	this.host_name = host_name;
         Preferences.setHostDetails(conf_file, host_name);
-        mp = new MessagePasser(conf_file, host_name);
+        try {
+            mp = new MessagePasser(conf_file, host_name, InetAddress.getByName("127.0.0.1").getHostAddress());
+        } catch (UnknownHostException ex) {
+            Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
+        }
         numberOfClients = Preferences.nodes.size();
         nodeLogTextAreaMap = new HashMap<String, JTextArea>();
         nodeFrameMap = new HashMap<String, JFrame>();
@@ -137,57 +142,48 @@ public class TaskNetLogger implements ActionListener {
                         Thread.sleep(10);
                         Message msg = mp.receive();
                         if (msg != null) {
-                            if (msg instanceof MulticastMessage) {
-                                switch (((MulticastMessage) msg).getMessageType()) {
-                                    case TASK_ADV:
-                                        taLogArea.append("\nReceived task advertisement");
-                                        Node nodeProfile = Preferences.nodes.get(Preferences.LOGGER_NAME);
-                                        Message profileMsg = new Message(((MulticastMessage) msg).getSource(), 
-                                        		"", "", nodeProfile, host_name);
-                                        profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
-                                        try {
-                                            mp.send(profileMsg);
-                                        } catch (InvalidMessageException ex) {
-                                            ex.printStackTrace();
-                                        }
-                                        break;
-                                }
-                            } else {
-                                switch (msg.getNormalMsgType()) {
-                                    case BOOTSTRAP:
-                                        Node newNode = (Node) msg.getData();
-                                        newNode.setNodeIndex(Preferences.nodes.size());
-                                        createNewLogFrame(newNode.getName());
+                            switch (msg.getNormalMsgType()) {
+                                case BOOTSTRAP:
+                                    Node newNode = (Node) msg.getData();
+                                    newNode.setNodeIndex(Preferences.nodes.size());
+                                    createNewLogFrame(newNode.getName());
+                                    try {
                                         System.out.println(newNode.getAdrress());
-                                        Preferences.nodes.put(msg.getLogSource(),newNode);
-                                        Preferences.node_addresses.put(newNode.getName(),newNode.getAdrress());
-                                        Preferences.node_names.put(newNode.getIndex(),newNode.getName());
-                                        Message bootstrapNodeList = new Message( msg.getLogSource(), 
-                                        		"", "",(Serializable) Preferences.nodes, host_name);
-                                        bootstrapNodeList.setNormalMsgType(Message.NormalMsgType.BOOTSTRAP_NODE_LIST);
-                                        try {
-                                            mp.send(bootstrapNodeList);
-                                        } catch (InvalidMessageException ex) {
-                                            Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
-                                        }
-                                        break;
-                                    case LOG_MESSAGE:
-                                        nodeLogs.get(msg.getLogSource()).add(msg.getData().toString());
-                                        taLogArea.append(msg.getLogSource() + ": " + msg.getData());
-                                        nodeLogTextAreaMap.get(msg.getLogSource()).append(msg.getData().toString());
-                                        break;
-                                    case PROFILE_UPDATE:
-                                        System.out.println("Receiving update info");
-                                        Node nodeToBeUpdated = (Node) msg.getData();
-                                        synchronized (Preferences.nodes) {
-                                            int mem = (int) nodeToBeUpdated.getMemoryCapacity() - 1;
-                                            int procload = (int) nodeToBeUpdated.getProcessorLoad() - 1;
-                                            int batterylevel = nodeToBeUpdated.getBatteryLevel() - 1;
-                                            (Preferences.nodes.get(nodeToBeUpdated.getName())).update(mem, procload, batterylevel);
-                                        }
-                                        repaintPanel();
-                                        break;
-                                }
+                                    } catch (UnknownHostException ex) {
+                                        Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
+                                    Preferences.nodes.put(msg.getSource(), newNode);
+                                    try {
+                                        Preferences.node_addresses.put(newNode.getName(), newNode.getAdrress());
+                                    } catch (UnknownHostException ex) {
+                                        Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
+                                    Preferences.node_names.put(newNode.getIndex(), newNode.getName());
+                                    Message bootstrapNodeList = new Message(msg.getSource(), 
+                                    		"", "", (Serializable) Preferences.nodes, host_name);
+                                    bootstrapNodeList.setNormalMsgType(Message.NormalMsgType.BOOTSTRAP_NODE_LIST);
+                                    try {
+                                        mp.send(bootstrapNodeList);
+                                    } catch (InvalidMessageException ex) {
+                                        Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
+                                    break;
+                                case LOG_MESSAGE:
+                                    nodeLogs.get(msg.getLogSource()).add(msg.getData().toString());
+                                    taLogArea.append(msg.getLogSource() + ": " + msg.getData());
+                                    nodeLogTextAreaMap.get(msg.getLogSource()).append(msg.getData().toString());
+                                    break;
+                                case PROFILE_UPDATE:
+                                    System.out.println("Receiving update info");
+                                    Node nodeToBeUpdated = (Node) msg.getData();
+                                    synchronized (Preferences.nodes) {
+                                        int mem = (int) nodeToBeUpdated.getMemoryCapacity() - 1;
+                                        int procload = (int) nodeToBeUpdated.getProcessorLoad() - 1;
+                                        int batterylevel = nodeToBeUpdated.getBatteryLevel() - 1;
+                                        (Preferences.nodes.get(nodeToBeUpdated.getName())).update(mem, procload, batterylevel);
+                                    }
+                                    repaintPanel();
+                                    break;
                             }
                         }
                     } catch (InterruptedException ex) {

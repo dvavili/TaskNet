@@ -69,24 +69,5 @@ public class MulticastMessage extends TimeStampedMessage implements Serializable
     void setData(Object data) {
         this.data = data.toString();
     }
-
-    public void setSource(String src) {
-        source = src;
-    }
-
-    void printMsgReceivedArray() {
-        System.out.print("[");
-        for (boolean b : msgReceived) {
-            System.out.print(b + ",");
-        }
-        System.out.println("]");
-    }
-    
-    private void writeObject(ObjectOutputStream out) throws IOException {
-        out.defaultWriteObject();
-    }
-
-    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-    }
 }
+

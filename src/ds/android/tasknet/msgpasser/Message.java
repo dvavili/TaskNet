@@ -22,7 +22,7 @@ public class Message implements Serializable {
     public enum NormalMsgType {
 
         NORMAL, PROFILE_XCHG, TASK_ADV, PROFILE_UPDATE, DISTRIBUTED_TASK,
-        TASK_RESULT, LOG_MESSAGE, BOOTSTRAP, BOOTSTRAP_NODE_LIST
+        TASK_RESULT, LOG_MESSAGE, BOOTSTRAP, BOOTSTRAP_NODE_LIST, ALIVE
     };
     protected Serializable data;
     protected String destination;

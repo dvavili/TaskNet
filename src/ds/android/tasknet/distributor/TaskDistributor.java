@@ -1,7 +1,6 @@
 package ds.android.tasknet.distributor;
 
 import ds.android.tasknet.application.SampleApplicationLocal;
-import ds.android.tasknet.clock.ClockFactory;
 import ds.android.tasknet.config.Node;
 import ds.android.tasknet.config.Preferences;
 import ds.android.tasknet.exceptions.InvalidMessageException;
@@ -19,6 +18,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.UnknownHostException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -39,7 +40,6 @@ public class TaskDistributor {
     MessagePasser mp;
     String host;
     Properties prop;
-    ClockFactory.ClockType clock;
     public static int taskNum = 0;
     HashMap<String, TaskLookup> taskLookups;
     Map<String, Map<Integer, TaskResult>> taskResults = new HashMap<String, Map<Integer, TaskResult>>();
@@ -50,7 +50,7 @@ public class TaskDistributor {
     float avgNodeLoad;
     float varianceNodeLoad;
 
-    public TaskDistributor(String host_name, String conf_file, String clockType) {
+    public TaskDistributor(String host_name, String conf_file, String IPaddress) {
         prop = new Properties();
         Preferences.setHostDetails(conf_file, host_name);
         try {
@@ -58,16 +58,7 @@ public class TaskDistributor {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-        if (clockType.equalsIgnoreCase("default")) {
-            clockType = prop.getProperty("clock.type");
-        }
-        if (clockType.equalsIgnoreCase("logical")) {
-            clock = ClockFactory.ClockType.LOGICAL;
-            mp = new MessagePasser(conf_file, host_name);
-        } else if (clockType.equalsIgnoreCase("vector")) {
-            clock = ClockFactory.ClockType.VECTOR;
-            mp = new MessagePasser(conf_file, host_name);
-        }
+        mp = new MessagePasser(conf_file, host_name, IPaddress);
         host = host_name;
         taskLookups = new HashMap<String, TaskLookup>();
 
@@ -91,12 +82,82 @@ public class TaskDistributor {
                         Message msg = mp.receive();
                         if (msg != null) {
                             if (msg instanceof MulticastMessage) {
-                                switch (((MulticastMessage) msg).getMessageType()) {
+//                                switch (((MulticastMessage) msg).getMessageType()) {
+//                                    case TASK_ADV:
+//                                        Task receivedTask = (Task) msg.getData();
+//                                        synchronized (Preferences.nodes) {
+//                                            logMessage("Received task advertisement from: "
+//                                                    + ((MulticastMessage) msg).getSource());
+//                                            Node host_node = Preferences.nodes.get(host);
+//                                            float remaining_load = Preferences.TOTAL_LOAD_AT_NODE
+//                                                    - (receivedTask.taskLoad
+//                                                    /*
+//                                                     * +
+//                                                     * host_node.getProcessorLoad()
+//                                                     */
+//                                                    + host_node.getPromisedLoad());
+//                                            int loadCanServe = 0;
+//                                            if (remaining_load > Preferences.host_reserved_load) {
+//                                                loadCanServe = receivedTask.taskLoad;
+//                                            } else {
+//                                                // Need to change this to avoid
+//                                                // fragmentation
+//                                                loadCanServe = Preferences.TOTAL_LOAD_AT_NODE
+//                                                        - (Preferences.host_reserved_load + host_node.getPromisedLoad());
+//                                            }
+//                                            if (loadCanServe > Preferences.MINIMUM_LOAD_REQUEST) {
+//                                                Integer tempTaskAdvReplyId = ++taskAdvReplyId;
+//                                                String tempTaskAdvReplyIdStr = host_node.getName()
+//                                                        + tempTaskAdvReplyId;
+//                                                receivedTask.setPromisedTaskLoad(loadCanServe);
+//                                                host_node.addToAcceptedTask(
+//                                                        tempTaskAdvReplyIdStr,
+//                                                        receivedTask);
+//                                                host_node.incrPromisedLoad(loadCanServe);
+//                                                TaskAdvReply taskAdvReply = new TaskAdvReply(
+//                                                        tempTaskAdvReplyIdStr,
+//                                                        receivedTask.getTaskId(),
+//                                                        host_node, loadCanServe);
+//                                                Message profileMsg = new Message(
+//                                                        ((MulticastMessage) msg).getSource(),
+//                                                        "", "", taskAdvReply);
+//                                                profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
+//                                                try {
+//                                                    System.out.println("Sent profile message from: "
+//                                                            + host
+//                                                            + " "
+//                                                            + Preferences.nodes.get(host).getAdrress()
+//                                                            + " "
+//                                                            + Preferences.nodes.get(host).getNodePort());
+//                                                    mp.send(profileMsg);
+//                                                } catch (InvalidMessageException ex) {
+//                                                    host_node.removeFromAcceptedTask(tempTaskAdvReplyIdStr);
+//                                                    host_node.decrPromisedLoad(loadCanServe);
+//                                                    ex.printStackTrace();
+//                                                } catch (UnknownHostException e) {
+//                                                    // TODO Auto-generated catch
+//                                                    // block
+//                                                    e.printStackTrace();
+//                                                }
+//                                                logMessage("Sent message profile for task: "
+//                                                        + receivedTask.taskId
+//                                                        + " "
+//                                                        + remaining_load);
+//                                            } else {
+//                                                logMessage("Node Overloaded: "
+//                                                        + receivedTask.taskId + " "
+//                                                        + loadCanServe);
+//                                            }
+//                                        }
+//                                        break;
+//                                }
+                            } else {
+                                switch (msg.getNormalMsgType()) {
                                     case TASK_ADV:
                                         Task receivedTask = (Task) msg.getData();
                                         synchronized (Preferences.nodes) {
-                                            logMessage("Received task advertisement from: " 
-                                            		+ ((MulticastMessage)msg).getSource());
+                                            logMessage("Received task advertisement from: "
+                                                    + msg.getSource());
                                             Node host_node = Preferences.nodes.get(host);
                                             float remaining_load = host_node.getBatteryLevel()
                                                     - (receivedTask.taskLoad 
@@ -119,68 +180,86 @@ public class TaskDistributor {
                                                 receivedTask.setPromisedTaskLoad(loadCanServe);
                                                 host_node.addToAcceptedTask(tempTaskAdvReplyIdStr, receivedTask);
                                                 host_node.incrPromisedLoad(loadCanServe);
-                                                TaskAdvReply taskAdvReply =
-                                                        new TaskAdvReply(tempTaskAdvReplyIdStr, 
-                                                        		receivedTask.getTaskId(), host_node, loadCanServe);
-                                                Message profileMsg = new Message(((MulticastMessage) msg).getSource(),
-                                                        "", "", taskAdvReply, host_node.getName());
+                                                TaskAdvReply taskAdvReply = new TaskAdvReply(
+                                                        tempTaskAdvReplyIdStr,
+                                                        receivedTask.getTaskId(),
+                                                        host_node, loadCanServe);
+                                                Message profileMsg = new Message(
+                                                        msg.getSource(),
+                                                        "", "", taskAdvReply, host);
                                                 profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
                                                 try {
-                                                    System.out.println("Sent profile message from: " + host
-                                                            + " " + Preferences.nodes.get(host).getAdrress()
-                                                            + " " + Preferences.nodes.get(host).getNodePort());
+                                                    System.out.println("Sent profile message from: "
+                                                            + host
+                                                            + " "
+                                                            + Preferences.nodes.get(host).getAdrress()
+                                                            + " "
+                                                            + Preferences.nodes.get(host).getNodePort());
                                                     mp.send(profileMsg);
                                                 } catch (InvalidMessageException ex) {
                                                     host_node.removeFromAcceptedTask(tempTaskAdvReplyIdStr);
                                                     host_node.decrPromisedLoad(loadCanServe);
                                                     ex.printStackTrace();
+                                                } catch (UnknownHostException e) {
+                                                    // TODO Auto-generated catch
+                                                    // block
+                                                    e.printStackTrace();
                                                 }
                                                 logMessage("Sent message profile for task: "
-                                                        + receivedTask.taskId + " " + remaining_load);
+                                                        + receivedTask.taskId
+                                                        + " "
+                                                        + remaining_load);
                                             } else {
-                                                logMessage("Node Overloaded: " 
-                                                		+ receivedTask.taskId + " " + loadCanServe);
+                                                logMessage("Node Overloaded: "
+                                                        + receivedTask.taskId + " "
+                                                        + loadCanServe);
                                             }
                                         }
                                         break;
-                                }
-                            } else {
-                                switch (msg.getNormalMsgType()) {
                                     case NORMAL:
                                         logMessage(msg.getData().toString());
                                         break;
                                     case PROFILE_XCHG:
                                         TaskAdvReply taskAdvReply = (TaskAdvReply) msg.getData();
-                                        System.out.println("Getting profile_xchg message from: " 
-                                        		+ taskAdvReply.getNode().getName()
-                                                            + " " + taskAdvReply.getNode().getAdrress()
-                                                            + " " + taskAdvReply.getNode().getNodePort());
+                                        System.out.println("Getting profile_xchg message from: "
+                                                + taskAdvReply.getNode().getName()
+                                                + " "
+                                                + taskAdvReply.getNode().getAdrress()
+                                                + " "
+                                                + taskAdvReply.getNode().getNodePort());
                                         TaskLookup taskLookup = taskLookups.get(taskAdvReply.getTaskId());
                                         taskLookup.setRetry(0);
                                         distributeTask(taskAdvReply);
                                         break;
                                     case DISTRIBUTED_TASK:
                                         TaskChunk taskChunk = (TaskChunk) msg.getData();
-//                                        taMessages.append(taskChunk.toString());
+                                        // taMessages.append(taskChunk.toString());
                                         DistributedTask distTask = taskChunk.getDsTask();
                                         TaskResult result;
                                         Map<Integer, TaskResult> tempResults = taskResults.get(distTask.getTaskId());
-//                                        if (tempResults != null
-//                                                && tempResults.get(distTask.getSeqNumber()) != null) {
-//                                            result = taskResults.get(distTask.getTaskId())
-//                                        				.get(taskChunk.getSequenceNumber());
-//                                        } else {
-                                        result = new TaskResult(distTask.getTaskLoad(),
+                                        // if (tempResults != null
+                                        // &&
+                                        // tempResults.get(distTask.getSeqNumber())
+                                        // != null) {
+                                        // result =
+                                        // taskResults.get(distTask.getTaskId()).get(taskChunk.getSequenceNumber());
+                                        // } else {
+                                        result = new TaskResult(
+                                                distTask.getTaskLoad(),
                                                 distTask.taskId, host,
-                                                handleDistributedTask(distTask), taskChunk.getSequenceNumber());
+                                                handleDistributedTask(distTask),
+                                                taskChunk.getSequenceNumber());
 
                                         if (tempResults == null) {
                                             tempResults = new HashMap<Integer, TaskResult>();
                                         }
 
-                                        tempResults.put(taskChunk.getSequenceNumber(), result);
-                                        taskResults.put(distTask.getTaskId(), tempResults);
-//                                        }
+                                        tempResults.put(
+                                                taskChunk.getSequenceNumber(),
+                                                result);
+                                        taskResults.put(distTask.getTaskId(),
+                                                tempResults);
+                                        // }
                                         Node host_node = Preferences.nodes.get(host);
                                       //decrease promise
                                         if(host_node.getAcceptedTaskByTaskId(taskChunk.getTaskAdvReplyId()) != null) {
@@ -228,6 +307,9 @@ public class TaskDistributor {
                         }
                     } catch (InterruptedException ex) {
                         ex.printStackTrace();
+                    } catch (UnknownHostException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
                     }
                 }
             }
@@ -307,9 +389,13 @@ public class TaskDistributor {
                 Message distMsg = new Message(node.getName(), "", "", taskChunk, host);
                 distMsg.setNormalMsgType(Message.NormalMsgType.DISTRIBUTED_TASK);
 
-                System.out.println("Sending Distributed_task message from: " + node.getName()
-                                                            + " " + node.getAdrress()
-                                                            + " " + node.getNodePort());
+                try {
+					System.out.println("Sending Distributed_task message from: " + node.getName()
+					                                            + " " + node.getAdrress()
+					                                            + " " + node.getNodePort());
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				}
                 sendAndRetryTaskChunk(taskChunk, distMsg, dsTask, loadDistributed, taskLookup);
 
             }
@@ -461,29 +547,41 @@ public class TaskDistributor {
         synchronized (taskLookups) {
             taskLookups.put(taskId, taskLookup);
         }
-
-        sendAndRetryTaskAdv(taskLookup, nodeName, msgKind, msgId, newTask);
+        Message advMsg = new Message(nodeName, msgKind, msgId,
+                newTask, host);
+        advMsg.setSource(host);
+        advMsg.setNormalMsgType(Message.NormalMsgType.TASK_ADV);
+        sendAndRetryTaskAdv(taskLookup, advMsg);
         Preferences.crashNode = "";
     }
 
-    private void sendAndRetryTaskAdv(final TaskLookup taskLookup, final String nodeName,
-            final String msgKind, final String msgId, final Task newTask) {
+    private void sendAndRetryTaskAdv(final TaskLookup taskLookup,
+            final Message advMsg) {
 
         (new Thread() {
 
             public void run() {
-                //if it still hasn't exhausted its retry and still hasn't got enough reply
-                MulticastMessage advMsg;
+                // if it still hasn't exhausted its retry and still hasn't got
+                // enough reply
                 while (taskLookup.getStatus() == Preferences.TASK_STATUS.ADVERTISED
                         && taskLookup.getRetry() < Preferences.NUMBER_OF_RETRIES_BEFORE_QUITTING) {
 
-                    logMessage("Tasklookup status : " + taskLookup.getStatus() + " Retries: " + taskLookup.getRetry());
-                    //send task request advertisement, ask for bid
+                    logMessage("Tasklookup status : " + taskLookup.getStatus()
+                            + " Retries: " + taskLookup.getRetry());
+                    // send task request advertisement, ask for bid
                     try {
-                        advMsg = new MulticastMessage(nodeName, msgKind, msgId,
-                                newTask, mp.getClock(), true, MulticastMessage.MessageType.TASK_ADV, host);
-                        mp.send(advMsg);                        
-                        System.out.println("Multicast time: " + advMsg.getClockService().getTime());
+                        synchronized(mp){
+                            Collection<Node> nodes = Preferences.nodes.values();
+                            for(Node n : nodes){
+                                if(!n.getName().equalsIgnoreCase(host)){
+                                advMsg.setDest(n.getName());
+                                mp.send(advMsg);
+                                Thread.sleep(100);
+                                }
+                            }
+                        }
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(TaskDistributor.class.getName()).log(Level.SEVERE, null, ex);
                     } catch (InvalidMessageException e) {
                         e.printStackTrace();
                     }

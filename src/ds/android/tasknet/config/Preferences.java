@@ -70,31 +70,6 @@ public class Preferences {
 			LOGGER_NAME = prop.getProperty("LOGGER");
 			COORDINATOR = prop.getProperty("COORDINATOR");
                         host_initial_load = host_reserved_load = 10;
-//			StringTokenizer node_string = new StringTokenizer(
-//					prop.getProperty("NAMES"), ",");
-//			int num_nodes = node_string.countTokens();
-//			for (int i = 0; i < num_nodes; i++) {
-//				String node_name = node_string.nextToken();
-//				if (node_name.equalsIgnoreCase(local_host)) {
-//					host_index = i;
-//					host_initial_load = host_reserved_load = new Integer(
-//							prop.getProperty("node." + local_host
-//									+ ".reserved_load"));
-//				}
-//				if (!node_name.equalsIgnoreCase(LOGGER_NAME)) {
-//					Node node = new Node(node_name,
-//							InetAddress.getByName(prop.getProperty("node."
-//									+ node_name + ".ip")), new Integer(prop.getProperty("node."
-//									+ node_name + ".port")));
-//					// nodesList.add(node);
-//					nodes.put(node_name, node);
-//					node_names.put(i, node_name);
-//					node_addresses.put(
-//							node_name,
-//							InetAddress.getByName(prop.getProperty("node."
-//									+ node_name + ".ip")));
-//				}
-//			}
 		} catch (FileNotFoundException ex) {
 			Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE,
 					null, ex);

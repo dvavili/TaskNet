@@ -2,6 +2,7 @@ package ds.android.tasknet.config;
 
 import java.io.Serializable;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,7 +20,7 @@ public class Node implements Serializable {
     private static final long serialVersionUID = 1L;
     String nodeName;
     Integer nodeIndex;
-    InetAddress nodeAddress;
+    String nodeAddress;
     Integer nodePort;
     long memoryCapacity;
     float processorLoad;
@@ -30,7 +31,7 @@ public class Node implements Serializable {
     public Node(String name, InetAddress address, Integer port) {
         nodeName = name;
         nodeIndex = -1;
-        nodeAddress = address;
+        nodeAddress = address.getHostAddress();
         nodePort = port;
         memoryCapacity = 0;
         processorLoad = 0;
@@ -46,14 +47,14 @@ public class Node implements Serializable {
         return nodeName;
     }
 
-    public InetAddress getAdrress() {
-        return nodeAddress;
+    public InetAddress getAdrress() throws UnknownHostException {
+        return InetAddress.getByName(nodeAddress);
     }
 
     public void setNodeIndex(Integer nodeIndex) {
         this.nodeIndex = nodeIndex;
     }
-    
+
     public Integer getNodePort() {
         return nodePort;
     }

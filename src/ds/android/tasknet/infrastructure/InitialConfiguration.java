@@ -8,7 +8,10 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.net.SocketException;
 import java.util.Enumeration;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -120,7 +123,7 @@ public class InitialConfiguration implements ActionListener {
                 if (getLocalNodeName().equalsIgnoreCase("logger")) {
                     new TaskNetLogger(getLocalNodeName(), getFileName());
                 } else {
-                    new TaskNetNode(getLocalNodeName(), getFileName(), getSelection(bgClockType));
+                    new TaskNetNode(getLocalNodeName(), getFileName());
                 }
             }
         }
