@@ -19,11 +19,10 @@ public class MulticastMessage extends TimeStampedMessage implements Serializable
     };
     boolean[] msgReceived;
     MessageType msgType;
-    String source;
 
     public MulticastMessage(String dest, String kind, String id, Serializable data, ClockService c,
             boolean newTimeStamp, MessageType mType, String src) {
-        super(dest, kind, id, data, c, newTimeStamp);
+        super(dest, kind, id, data, c, newTimeStamp, src);
         msgReceived = new boolean[Preferences.nodes.size()];
         for (int i = 0; i < msgReceived.length; i++) {
             if (i == Preferences.host_index) {
@@ -33,14 +32,13 @@ public class MulticastMessage extends TimeStampedMessage implements Serializable
             }
         }
         msgType = mType;
-        source = src;
     }
 
     public MulticastMessage(MulticastMessage m, MessageType type) {
-        super("", Preferences.MULTICAST_MESSAGE, Preferences.MULTICAST_MESSAGE, m.getData(), m.getClockService(), false);
+        super("", Preferences.MULTICAST_MESSAGE, Preferences.MULTICAST_MESSAGE, 
+        		m.getData(), m.getClockService(), false, m.getSource());
         msgReceived = m.getMsgReceivedArray();
         msgType = type;
-        source = m.getSource();
     }
 
     boolean canBeDelivered() {
@@ -50,10 +48,6 @@ public class MulticastMessage extends TimeStampedMessage implements Serializable
             }
         }
         return true;
-    }
-
-    public String getSource() {
-        return source;
     }
 
     public MessageType getMessageType() {

@@ -41,7 +41,11 @@ public class Preferences {
 	public static final String LEAVE_CRITICAL_SECTION = "Leave Critical Section";
 	public static final int SIZE_OF_BUFFER = 10000;
 	public static final int PROFILE_UPDATE_TIME_PERIOD = 2000;
-	public static final int TOTAL_LOAD_AT_NODE = 100;
+	public static final int TOTAL_LOAD_AT_NODE = 1000;
+	public static final int LOAD_SPENT_IN_COMMUNICATION_SEND = 2;
+	public static final int LOAD_SPENT_IN_COMMUNICATION_RECEIVE = 1;
+	public static final int LOAD_SPENT_IN_TASK_CHUNK_EXECUTION = 10;
+	public static final int LOAD_SPENT_IN_TASK_DISTRIBUTION = 20;
 	public static final int MINIMUM_LOAD_REQUEST = 0;
 	public static final int NUMBER_OF_RETRIES_BEFORE_QUITTING = 3;
 	public static final int WAIT_TIME_BEFORE_RETRYING = 1000;

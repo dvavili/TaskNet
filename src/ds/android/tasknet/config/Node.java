@@ -34,7 +34,7 @@ public class Node implements Serializable {
         nodePort = port;
         memoryCapacity = 0;
         processorLoad = 0;
-        batteryLevel = 0;
+        batteryLevel = Preferences.TOTAL_LOAD_AT_NODE;
         promisedLoad = 0;
     }
 
@@ -75,7 +75,11 @@ public class Node implements Serializable {
     }
 
     public void setBatteryLevel(int value) {
-//        batteryLevel -= value;
+        batteryLevel = value;
+    }
+    
+    public void decrBatteryLevel(int value) {
+        batteryLevel -= value;
     }
 
 //    public Boolean hasBeenDistributed() {

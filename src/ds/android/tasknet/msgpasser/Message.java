@@ -32,8 +32,9 @@ public class Message implements Serializable {
     protected String logMessage;
     protected Boolean log;
     protected NormalMsgType normalMsgType;
+    protected String source;
 
-    public Message(String dest, String kind, String id, Serializable data) {
+    public Message(String dest, String kind, String id, Serializable data, String src) {
         this.data = data;
         this.kind = kind;
         this.destination = dest;
@@ -41,6 +42,7 @@ public class Message implements Serializable {
         log = false;
         logSource = "";
         normalMsgType = NormalMsgType.NORMAL;
+        this.source = src;
     }
 
     public void setNormalMsgType(NormalMsgType type) {
@@ -101,5 +103,13 @@ public class Message implements Serializable {
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
+    }
+    
+    public String getSource() {
+        return source;
+    }
+    
+    public void setSource(String src) {
+        this.source = src;
     }
 }

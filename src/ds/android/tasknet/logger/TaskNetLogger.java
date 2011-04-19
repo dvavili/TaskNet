@@ -51,9 +51,11 @@ public class TaskNetLogger implements ActionListener {
     Map<String, JFrame> nodeFrameMap;
     Map<String, ArrayList<String>> nodeLogs;
     MessagePasser mp;
+    String host_name;
 
     public TaskNetLogger(String host_name, String conf_file) {
 
+    	this.host_name = host_name;
         Preferences.setHostDetails(conf_file, host_name);
         mp = new MessagePasser(conf_file, host_name);
         numberOfClients = Preferences.nodes.size();
@@ -134,7 +136,8 @@ public class TaskNetLogger implements ActionListener {
                                     case TASK_ADV:
                                         taLogArea.append("\nReceived task advertisement");
                                         Node nodeProfile = Preferences.nodes.get(Preferences.LOGGER_NAME);
-                                        Message profileMsg = new Message(((MulticastMessage) msg).getSource(), "", "", nodeProfile);
+                                        Message profileMsg = new Message(((MulticastMessage) msg).getSource(), 
+                                        		"", "", nodeProfile, host_name);
                                         profileMsg.setNormalMsgType(Message.NormalMsgType.PROFILE_XCHG);
                                         try {
                                             mp.send(profileMsg);

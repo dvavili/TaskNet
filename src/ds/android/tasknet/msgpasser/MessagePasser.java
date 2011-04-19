@@ -18,6 +18,7 @@ import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -96,10 +97,16 @@ public class MessagePasser extends Thread {
             if (host_name.equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                 host_ip = InetAddress.getByName(prop.getProperty("node." + local_name + ".ip"));
                 host_port = Integer.parseInt(prop.getProperty("node." + local_name + ".port"));
-                udpServerSocket = new DatagramSocket(host_port);
+                udpServerSocket = new DatagramSocket(host_port, host_ip);
+                udpServerSocket.setReuseAddress(true);
             } else {
-                udpServerSocket = new DatagramSocket();
-                host_ip = InetAddress.getLocalHost();
+
+//                udpServerSocket = new DatagramSocket();               
+//                host_ip = InetAddress.getLocalHost();
+                
+            	udpServerSocket = new DatagramSocket(new InetSocketAddress("127.0.0.1", 0));
+                host_ip = udpServerSocket.getLocalAddress();
+                
                 host_port = udpServerSocket.getLocalPort();
                 System.out.println(host_name + " " + host_ip + " " + host_port);
             }
@@ -173,7 +180,7 @@ public class MessagePasser extends Thread {
     private void bootstrapNodeProcess() {
         System.out.println("Sending bootstrapping message: " + Preferences.LOGGER_NAME);
         Node hostNodeDetails = new Node(host_name, host_ip, host_port);
-        Message bootstrapMsg = new Message(Preferences.LOGGER_NAME, "", "", hostNodeDetails);
+        Message bootstrapMsg = new Message(Preferences.LOGGER_NAME, "", "", hostNodeDetails, host_name);
         bootstrapMsg.setLogSource(host_name);
         bootstrapMsg.setNormalMsgType(Message.NormalMsgType.BOOTSTRAP);
         sendMsgThroSocket(bootstrapMsg);
@@ -294,6 +301,10 @@ public class MessagePasser extends Thread {
                     } else {
                         udpsendPacket = new DatagramPacket(sendData, sendData.length, Preferences.nodes.get(message.getDest()).getAdrress(), Preferences.nodes.get(message.getDest()).getNodePort());
                     }
+                    //if source/dest is logger dont simulate energy consumption
+                    if(!message.getDest().equals(Preferences.LOGGER_NAME) &&
+                    		!message.getSource().equals(Preferences.LOGGER_NAME))
+                    	Preferences.nodes.get(host_name).decrBatteryLevel(Preferences.LOAD_SPENT_IN_COMMUNICATION_SEND);
                     udpClientSocket.send(udpsendPacket);
                 } else {
                     Object[] node_names = Preferences.node_addresses.keySet().toArray();
@@ -308,6 +319,10 @@ public class MessagePasser extends Thread {
                             } else {
                                 udpsendPacket = new DatagramPacket(sendData, sendData.length, Preferences.nodes.get(node_names[i]).getAdrress(), Preferences.nodes.get(node_names[i]).getNodePort());
                             }
+                            //if source/dest is logger dont simulate energy consumption
+                            if(!message.getDest().equals(Preferences.LOGGER_NAME) &&
+                            		!message.getSource().equals(Preferences.LOGGER_NAME))
+                            	Preferences.nodes.get(host_name).decrBatteryLevel(Preferences.LOAD_SPENT_IN_COMMUNICATION_SEND);
                             udpClientSocket.send(udpsendPacket);
                         }
                     }
@@ -318,6 +333,12 @@ public class MessagePasser extends Thread {
                 } else {
                     udpsendPacket = new DatagramPacket(sendData, sendData.length, Preferences.nodes.get(message.getDest()).getAdrress(), Preferences.nodes.get(message.getDest()).getNodePort());
                 }
+                //remove this if letter
+                //if source/dest is logger dont simulate energy consumption
+                if(!message.getDest().equals(Preferences.LOGGER_NAME)
+                		&& !message.getSource().equals(Preferences.LOGGER_NAME)
+                		&& Preferences.nodes.get(host_name) != null)
+                	Preferences.nodes.get(host_name).decrBatteryLevel(Preferences.LOAD_SPENT_IN_COMMUNICATION_SEND);
                 udpClientSocket.send(udpsendPacket);
             }
         } catch (IOException ex) {
@@ -366,7 +387,7 @@ public class MessagePasser extends Thread {
             if (Preferences.logDrop) {
                 synchronized (outQueue) {
                     msg.setLogMessage("Message from " + host_name + " to " + msg.getDest() + " dropped");
-                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg, host_name));
                 }
             }
             return;
@@ -377,7 +398,7 @@ public class MessagePasser extends Thread {
                 if (Preferences.logDelay) {
                     synchronized (outQueue) {
                         msg.setLogMessage("Message from " + host_name + " to " + msg.getDest() + " delayed");
-                        outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
+                        outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg, host_name));
                     }
                 }
             }
@@ -390,7 +411,7 @@ public class MessagePasser extends Thread {
                 }
                 if (Preferences.logDuplicate) {
                     msg.setLogMessage("Message from " + host_name + " to " + msg.getDest() + " duplicated");
-                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg, host_name));
                 }
             }
         } else {
@@ -399,7 +420,7 @@ public class MessagePasser extends Thread {
                 if (Preferences.logEvent && !msg.getDest().equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                     msg.setToBeLogged(true);
                     msg.setLogMessage("Message sent from " + host_name + " to " + msg.getDest());
-                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg, host_name));
                 }
             }
         }
@@ -417,11 +438,18 @@ public class MessagePasser extends Thread {
             try {
                 udpPacketReceived = new DatagramPacket(receiveData, receiveData.length, host_ip, host_port);
                 udpServerSocket.setReceiveBufferSize(5000);
-                udpServerSocket.setSendBufferSize(5000);
+                udpServerSocket.setSendBufferSize(5000);                
                 udpServerSocket.receive(udpPacketReceived);
                 ByteArrayInputStream bis = new ByteArrayInputStream(udpPacketReceived.getData());
                 ois = new ObjectInputStream(bis);
                 final Message msg = (Message) (ois.readObject());
+                
+                //if source/dest is logger dont simulate energy consumption
+                if(!msg.getDest().equals(Preferences.LOGGER_NAME)
+                		&& !msg.getSource().equals(Preferences.LOGGER_NAME)
+                		&& Preferences.nodes.get(host_name) != null)
+                	Preferences.nodes.get(host_name).decrBatteryLevel(Preferences.LOAD_SPENT_IN_COMMUNICATION_RECEIVE);
+                
                 if (msg instanceof MulticastMessage) {
                     if (((MulticastMessage) msg).getMessageType() == MulticastMessage.MessageType.TASK_ADV) {
                         System.out.println("Getting Task Advertisement from: " + ((MulticastMessage) msg).getSource()
@@ -438,6 +466,8 @@ public class MessagePasser extends Thread {
             } catch (ClassNotFoundException ex) {
                 ex.printStackTrace();
             } catch (IOException ex) {
+                ex.printStackTrace();
+            } catch (Exception ex) {
                 ex.printStackTrace();
             } finally {
                 try {
@@ -498,7 +528,7 @@ public class MessagePasser extends Thread {
             if (Preferences.logDrop || msg.isToBeLogged()) {
                 synchronized (outQueue) {
                     msg.setLogMessage("Received message dropped in " + host_name);
-                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg, host_name));
                 }
             }
             return;
@@ -509,7 +539,7 @@ public class MessagePasser extends Thread {
                 if (Preferences.logDelay || msg.isToBeLogged()) {
                     synchronized (outQueue) {
                         msg.setLogMessage("Received message delayed in " + host_name);
-                        outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
+                        outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg, host_name));
                     }
                 }
             }
@@ -522,7 +552,7 @@ public class MessagePasser extends Thread {
                 }
                 if (Preferences.logDuplicate || msg.isToBeLogged()) {
                     msg.setLogMessage("Received message duplicated in " + host_name);
-                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg, host_name));
                 }
             }
         } else {
@@ -531,7 +561,7 @@ public class MessagePasser extends Thread {
                 inQueue.add(msg);
                 if (Preferences.logEvent || msg.isToBeLogged()) {
                     msg.setLogMessage("Message received in " + host_name);
-                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg));
+                    outQueue.add(new Message(Preferences.LOGGER_NAME, "log", "log", msg, host_name));
                 }
             }
         }

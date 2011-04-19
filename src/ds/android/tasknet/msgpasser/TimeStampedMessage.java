@@ -19,8 +19,9 @@ public class TimeStampedMessage extends Message implements Serializable {
     ClockService clock;
     String eventID;
 
-    public TimeStampedMessage(String dest, String kind, String id, Serializable data, ClockService c, boolean newTimeStamp) {
-        super(dest, kind, id, data);
+    public TimeStampedMessage(String dest, String kind, String id, 
+    		Serializable data, ClockService c, boolean newTimeStamp, String src) {
+        super(dest, kind, id, data, src);
         if (c instanceof LogicalClock && newTimeStamp) {
             ((LogicalClock) c).incrementTime();
         } else if (c instanceof VectorClock && newTimeStamp) {
@@ -61,7 +62,4 @@ public class TimeStampedMessage extends Message implements Serializable {
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
     }
-//    public static void main(String args[]){
-//        TimeStampedMessage tm = new TimeStampedMessage("alice", "kind1", "id1", "Hi bob", ClockFactory.getClock(ClockFactory.ClockType.VECTOR));
-//    }
 }
