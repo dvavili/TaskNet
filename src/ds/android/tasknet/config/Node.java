@@ -24,11 +24,12 @@ public class Node implements Serializable {
     Integer nodeIndex;
     String nodeAddress;
     Integer nodePort;
-    long memoryCapacity;
+    long memoryLoad;
     float processorLoad;
     Integer batteryLevel;
     Map<String, Task> acceptedTasks = new HashMap<String, Task>();
-    int promisedLoad;
+    int promisedBattreyLoad;
+    
     Date lastUpdated;
 
     public Node(String name, InetAddress address, Integer port) {
@@ -36,10 +37,10 @@ public class Node implements Serializable {
         nodeIndex = -1;
         nodeAddress = address.getHostAddress();
         nodePort = port;
-        memoryCapacity = 0;
+        memoryLoad = 0;
         processorLoad = 0;
-        batteryLevel = Preferences.TOTAL_LOAD_AT_NODE;
-        promisedLoad = 0;
+        batteryLevel = Preferences.TOTAL_BATTREY_AT_NODE;
+        promisedBattreyLoad = 0;
         lastUpdated = null;
     }
 
@@ -75,8 +76,8 @@ public class Node implements Serializable {
         this.nodePort = nodePort;
     }
 
-    public long getMemoryCapacity() {
-        return memoryCapacity;
+    public long getMemoryLoad() {
+        return memoryLoad;
     }
 
     public float getProcessorLoad() {
@@ -92,11 +93,28 @@ public class Node implements Serializable {
     }
 
     public void decrBatteryLevel(int value) {
-        batteryLevel -= value;
+//    	System.out.println("decreasing battrey current: " + batteryLevel + " by " + value);
+        batteryLevel -= value;        
     }
+    
+    public void incrProcessorLoad(float value) {
+    	processorLoad += value;
+    }
+    
+    public void decrProcessorLoad(float value) {
+    	processorLoad -= value;
+    }
+    
+    public void incrMemoryLoad(long value) {
+    	memoryLoad += value;
+    }
+    
+    public void decrMemoryLoad(long value) {
+    	memoryLoad -= value;
+    }    
 
     public void update(long currentRAM, float CPUsage, int currentBatteryLevel) {
-        memoryCapacity = currentRAM;
+        memoryLoad = currentRAM;
         processorLoad = CPUsage;
         batteryLevel = currentBatteryLevel;
         lastUpdated = Calendar.getInstance().getTime();
@@ -112,24 +130,28 @@ public class Node implements Serializable {
         this.acceptedTasks.remove(taskId);
     }
 
+    public Map<String,Task> getAcceptedTasks() {
+        return this.acceptedTasks;
+    }
+    
     public Task getAcceptedTaskByTaskId(String taskId) {
         return this.acceptedTasks.get(taskId);
     }
 
-    public int getPromisedLoad() {
-        return promisedLoad;
+    public int getPromisedBattreyLoad() {
+        return promisedBattreyLoad;
     }
 
-    public void setPromisedLoad(int promisedLoad) {
-        this.promisedLoad = promisedLoad;
+    public void setPromisedBattreyLoad(int promisedLoad) {
+        this.promisedBattreyLoad = promisedLoad;
     }
 
-    public void incrPromisedLoad(int promisedLoad) {
-        this.promisedLoad += promisedLoad;
+    public void incrPromisedBattreyLoad(int promisedLoad) {
+        this.promisedBattreyLoad += promisedLoad;
     }
 
-    public void decrPromisedLoad(int promisedLoad) {
-        this.promisedLoad -= promisedLoad;
+    public void decrPromisedBattreyLoad(int promisedLoad) {
+        this.promisedBattreyLoad -= promisedLoad;
     }
 
     public String toString() {
@@ -138,7 +160,7 @@ public class Node implements Serializable {
         str += "\nIndex: " + nodeIndex;
         str += "\nAdrress: " + nodeAddress;
         str += "\nPort: " + nodePort;
-        str += "\nMemory Capacity: " + memoryCapacity;
+        str += "\nMemory Load: " + memoryLoad;
         str += "\nProcessor Load: " + processorLoad;
         str += "\nBattery Level: " + batteryLevel;
         str += "\n";

@@ -47,14 +47,14 @@ public class Logs {
         return logMsgs;
     }
 
-    public void orderLogs() {
+    public void orderLogs(int nodeCount) {
         for (int i = 0; i < logMsgs.size(); i++) {
             for (int j = 0; j < i; j++) {
                 int compareResult = 0;
                 if (((TimeStampedMessage) logMsgs.get(i).getMessage()).getClockService() instanceof VectorClock) {
-                    compareResult = compare(logMsgs.get(i), logMsgs.get(j), ClockFactory.ClockType.VECTOR);
+                    compareResult = compare(logMsgs.get(i), logMsgs.get(j), ClockFactory.ClockType.VECTOR, nodeCount);
                 } else if (((TimeStampedMessage) logMsgs.get(i).getMessage()).getClockService() instanceof LogicalClock) {
-                    compareResult = compare(logMsgs.get(i), logMsgs.get(j), ClockFactory.ClockType.LOGICAL);
+                    compareResult = compare(logMsgs.get(i), logMsgs.get(j), ClockFactory.ClockType.LOGICAL, nodeCount);
                 }
                 if (compareResult < 0) {
                     LogMessage tempMsg = (LogMessage) logMsgs.get(i);
@@ -65,12 +65,12 @@ public class Logs {
         }
     }
 
-    int compare(LogMessage firstMsg, LogMessage secondMsg, ClockFactory.ClockType clockType) {
+    int compare(LogMessage firstMsg, LogMessage secondMsg, ClockFactory.ClockType clockType, int nodeCount) {
         int returnVal = 0;
         if(clockType == ClockFactory.ClockType.LOGICAL)
             returnVal = compareLogical(firstMsg,secondMsg);
         else if(clockType == ClockFactory.ClockType.VECTOR)
-            returnVal = compareVector(firstMsg,secondMsg);
+            returnVal = compareVector(firstMsg,secondMsg, nodeCount);
         return returnVal;
     }
 
@@ -90,11 +90,11 @@ public class Logs {
         return result;
     }
     
-    int compareVector(LogMessage firstMsg, LogMessage secondMsg){
+    int compareVector(LogMessage firstMsg, LogMessage secondMsg, int nodeCount){
         int result = 0;
         Vector<Integer> vFirst = (Vector<Integer>) ((TimeStampedMessage) firstMsg.getMessage()).getClockService().getTime();
         Vector<Integer> vSecond = (Vector<Integer>) ((TimeStampedMessage) secondMsg.getMessage()).getClockService().getTime();
-        for (int i = 0; i < Preferences.nodes.size(); i++) {
+        for (int i = 0; i < nodeCount; i++) {
             if (vFirst.get(i) < vSecond.get(i)) {
                 if (result > 0) {
                     result = 0;

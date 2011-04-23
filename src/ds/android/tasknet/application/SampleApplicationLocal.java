@@ -13,6 +13,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import ds.android.tasknet.config.Preferences;
+
 /**
  *
  * @author Divya_PKV
@@ -20,7 +22,8 @@ import javax.swing.JTextField;
 public class SampleApplicationLocal {
 
     public int method1(int a, int b) {
-        System.out.println("Method1: a = " + a + " b = " + b);
+    	if(Preferences.DEBUG_MODE)
+    		System.out.println("Method1: a = " + a + " b = " + b);
         return a + b;
     }
 

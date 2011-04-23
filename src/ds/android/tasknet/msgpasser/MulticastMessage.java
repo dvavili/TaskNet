@@ -21,9 +21,9 @@ public class MulticastMessage extends TimeStampedMessage implements Serializable
     MessageType msgType;
 
     public MulticastMessage(String dest, String kind, String id, Serializable data, ClockService c,
-            boolean newTimeStamp, MessageType mType, String src) {
+            boolean newTimeStamp, MessageType mType, String src, int nodeCount) {
         super(dest, kind, id, data, c, newTimeStamp, src);
-        msgReceived = new boolean[Preferences.nodes.size()];
+        msgReceived = new boolean[nodeCount];
         for (int i = 0; i < msgReceived.length; i++) {
             if (i == Preferences.host_index) {
                 msgReceived[i] = true;

@@ -59,9 +59,9 @@ public class VectorClock extends ClockService {
         return vectorClock.get(index);
     }
 
-    public void updateTime(ClockService c) {
+    public void updateTime(ClockService c, int size) {
         Vector<Integer> nodeClock = ((VectorClock) c).getTime();
-        for (int i = 0; i < Preferences.nodes.size(); i++) {
+        for (int i = 0; i < size; i++) {
             if (i != Preferences.host_index) {
                 if (nodeClock.get(i) > vectorClock.get(i)) {
                     vectorClock.set(i, nodeClock.get(i));

@@ -3,3 +3,5 @@
 *.project
 *.classpath
 *.ini
+*.rs
+.netbeans_automatic_build

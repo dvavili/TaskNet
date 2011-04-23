@@ -22,8 +22,10 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -61,14 +63,19 @@ public class MessagePasser extends Thread {
     boolean flag = false;
     boolean bootstrapComplete = false;
     ClockType clockType;
+    Map<String, Node> nodes;
+	Map<Integer, String> node_names;
+	Map<String, InetAddress> node_addresses;
 
     /**
      * @param configuration_filename
      * @param local_name
      * @param clockType - Enum ClockType
      */
-    public MessagePasser(String configuration_filename, String local_name, String IPaddress, ClockType clockType, Integer... numberOfNodes) {
-        this(configuration_filename, local_name, IPaddress);
+    public MessagePasser(String configuration_filename, String local_name, String IPaddress, 
+    		Map<String, Node> nodes, Map<Integer, String> node_names, Map<String, InetAddress> node_addresses,
+    		ClockType clockType, Integer... numberOfNodes) {
+        this(configuration_filename, local_name, IPaddress, nodes, node_names, node_addresses);
         this.clockType = clockType;
         clock = ClockFactory.initializeClock(clockType, numberOfNodes[0]);
     }
@@ -81,15 +88,19 @@ public class MessagePasser extends Thread {
      * Creates a socket for listening for connections and initializes
      * input and output buffers
      */
-    public MessagePasser(String configuration_filename, String local_name, String ipAddress) {
+    public MessagePasser(String configuration_filename, String local_name, String ipAddress, Map<String,
+    		Node> nodes,  Map<Integer, String> node_names, Map<String, InetAddress> node_addresses) {
         prop = new Properties();
         receiveData = new byte[Preferences.SIZE_OF_BUFFER];
         conf_file = configuration_filename;
         host_name = local_name;
         clockType = ClockType.LOGICAL;
+        this.nodes = nodes;
+        this.node_names = node_names;
+        this.node_addresses = node_addresses;
 
         process_state = Process_State.RELEASED;
-        arrMutexAckReceived = new boolean[Preferences.nodes.size()];
+        arrMutexAckReceived = new boolean[this.nodes.size()];
         for (int i = 0; i < arrMutexAckReceived.length; i++) {
             arrMutexAckReceived[i] = false;
         }
@@ -117,7 +128,7 @@ public class MessagePasser extends Thread {
             holdBackQueue = new Vector<MessageQueueEntry>();
             causalVector = new Vector<Integer>();
 
-            for (int i = 0; i < Preferences.nodes.size(); i++) {
+            for (int i = 0; i < this.nodes.size(); i++) {
                 causalVector.add(i, 0);
             }
 
@@ -176,8 +187,8 @@ public class MessagePasser extends Thread {
     private void bootstrapNodeProcess() {
         System.out.println("Sending bootstrapping message: " + Preferences.LOGGER_NAME);
         Node hostNodeDetails = new Node(host_name, host_ip, host_port);
-        synchronized (Preferences.nodes) {
-            Preferences.nodes.put(host_name, hostNodeDetails);
+        synchronized (this.nodes) {
+            this.nodes.put(host_name, hostNodeDetails);
         }
         Message bootstrapMsg = new Message(Preferences.LOGGER_NAME, "", "", hostNodeDetails, host_name);
         bootstrapMsg.setLogSource(host_name);
@@ -252,7 +263,15 @@ public class MessagePasser extends Thread {
             sendData = null;
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             oos = new ObjectOutputStream(bos);
-            oos.writeObject((Object) message);
+            synchronized(message) {
+            	try {
+            		oos.writeObject((Object) message);
+            	}
+            	catch (ConcurrentModificationException e) {
+            		if(Preferences.DEBUG_MODE)
+            			System.out.println("Concurrent Method exception: Make map synchronized");
+            	}
+            }
             oos.flush();
             sendData = bos.toByteArray();
             DatagramPacket udpsendPacket = null;
@@ -267,7 +286,7 @@ public class MessagePasser extends Thread {
                     synchronized (process_state) {
                         synchronized (arrMutexAckReceived) {
 //                            process_state = Process_State.WANTED;
-                            arrMutexAckReceived[(Preferences.nodes.get(host_name)).getIndex()] = true;
+                            arrMutexAckReceived[(this.nodes.get(host_name)).getIndex()] = true;
                         }
                     }
                 } else if (((MulticastMessage) message).getMessageType() == MulticastMessage.MessageType.RELEASE_MUTEX) {
@@ -298,16 +317,22 @@ public class MessagePasser extends Thread {
                     if (message.getDest().equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                         udpsendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(prop.getProperty("node." + message.getDest() + ".ip")), Integer.parseInt(prop.getProperty("node." + message.getDest() + ".port")));
                     } else {
-                        udpsendPacket = new DatagramPacket(sendData, sendData.length, Preferences.nodes.get(message.getDest()).getAdrress(), Preferences.nodes.get(message.getDest()).getNodePort());
+                        udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(message.getDest()).getAdrress(), this.nodes.get(message.getDest()).getNodePort());
                     }
                     //if source/dest is logger dont simulate energy consumption
                     if (!message.getDest().equals(Preferences.LOGGER_NAME)
-                            && !message.getSource().equals(Preferences.LOGGER_NAME)) {
-                        Preferences.nodes.get(host_name).decrBatteryLevel(Preferences.LOAD_SPENT_IN_COMMUNICATION_SEND);
+                            && !message.getSource().equals(Preferences.LOGGER_NAME)
+                            && (this.nodes.get(host_name).getBatteryLevel() 
+                            >= Preferences.BATTREY_SPENT_IN_COMMUNICATION_SEND)) {
+                        this.nodes.get(host_name).decrBatteryLevel(
+                        		Preferences.BATTREY_SPENT_IN_COMMUNICATION_SEND);
+                        udpClientSocket.send(udpsendPacket);
                     }
-                    udpClientSocket.send(udpsendPacket);
+                    else {
+                    	udpClientSocket.send(udpsendPacket);
+                    }
                 } else {
-                    Object[] node_names = Preferences.node_addresses.keySet().toArray();
+                    Object[] node_names = this.node_addresses.keySet().toArray();
                     for (int i = 0; i < node_names.length; i++) {
                         if (!host_name.equalsIgnoreCase((String) node_names[i])
                                 && !Preferences.crashNode.equalsIgnoreCase((String) node_names[i])) {
@@ -317,14 +342,20 @@ public class MessagePasser extends Thread {
                             if (message.getDest().equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                                 udpsendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(prop.getProperty("node." + message.getDest() + ".ip")), Integer.parseInt(prop.getProperty("node." + message.getDest() + ".port")));
                             } else {
-                                udpsendPacket = new DatagramPacket(sendData, sendData.length, Preferences.nodes.get(node_names[i]).getAdrress(), Preferences.nodes.get(node_names[i]).getNodePort());
+                                udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(node_names[i]).getAdrress(), this.nodes.get(node_names[i]).getNodePort());
                             }
                             //if source/dest is logger dont simulate energy consumption
                             if (!message.getDest().equals(Preferences.LOGGER_NAME)
-                                    && !message.getSource().equals(Preferences.LOGGER_NAME)) {
-                                Preferences.nodes.get(host_name).decrBatteryLevel(Preferences.LOAD_SPENT_IN_COMMUNICATION_SEND);
+                                    && !message.getSource().equals(Preferences.LOGGER_NAME)
+                                    && (this.nodes.get(host_name).getBatteryLevel() 
+                                            >= Preferences.BATTREY_SPENT_IN_COMMUNICATION_SEND)) {
+                                this.nodes.get(host_name).decrBatteryLevel(
+                                		Preferences.BATTREY_SPENT_IN_COMMUNICATION_SEND);
+                                udpClientSocket.send(udpsendPacket);
                             }
-                            udpClientSocket.send(udpsendPacket);
+                            else {
+                            	udpClientSocket.send(udpsendPacket);
+                            }
                         }
                     }
                 }
@@ -332,16 +363,22 @@ public class MessagePasser extends Thread {
                 if (message.getDest().equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                     udpsendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(prop.getProperty("node." + message.getDest() + ".ip")), Integer.parseInt(prop.getProperty("node." + message.getDest() + ".port")));
                 } else {
-                    udpsendPacket = new DatagramPacket(sendData, sendData.length, Preferences.nodes.get(message.getDest()).getAdrress(), Preferences.nodes.get(message.getDest()).getNodePort());
+                    udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(message.getDest()).getAdrress(), this.nodes.get(message.getDest()).getNodePort());
                 }
                 //remove this if letter
                 //if source/dest is logger dont simulate energy consumption
                 if (!message.getDest().equals(Preferences.LOGGER_NAME)
                         && !message.getSource().equals(Preferences.LOGGER_NAME)
-                        && Preferences.nodes.get(host_name) != null) {
-                    Preferences.nodes.get(host_name).decrBatteryLevel(Preferences.LOAD_SPENT_IN_COMMUNICATION_SEND);
+                        && this.nodes.get(host_name) != null
+                        && (this.nodes.get(host_name).getBatteryLevel() 
+                                >= Preferences.BATTREY_SPENT_IN_COMMUNICATION_SEND)) {
+                	this.nodes.get(host_name).decrBatteryLevel(Preferences.BATTREY_SPENT_IN_COMMUNICATION_SEND);
+                    
+                    udpClientSocket.send(udpsendPacket);
                 }
-                udpClientSocket.send(udpsendPacket);
+                else {
+                	udpClientSocket.send(udpsendPacket);
+                }
             }
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -449,8 +486,16 @@ public class MessagePasser extends Thread {
                 //if source/dest is logger dont simulate energy consumption
                 if (!msg.getDest().equals(Preferences.LOGGER_NAME)
                         && !msg.getSource().equals(Preferences.LOGGER_NAME)
-                        && Preferences.nodes.get(host_name) != null) {
-                    Preferences.nodes.get(host_name).decrBatteryLevel(Preferences.LOAD_SPENT_IN_COMMUNICATION_RECEIVE);
+                        && this.nodes.get(host_name) != null) {
+                	
+                	if((this.nodes.get(host_name).getBatteryLevel() 
+                                >= Preferences.BATTREY_SPENT_IN_COMMUNICATION_RECEIVE)) {
+                		this.nodes.get(host_name).decrBatteryLevel(
+                				Preferences.BATTREY_SPENT_IN_COMMUNICATION_RECEIVE);
+                	}
+                	else {
+                		continue;
+                	}
                 }
 
                 if (msg instanceof MulticastMessage) {
@@ -498,32 +543,32 @@ public class MessagePasser extends Thread {
             switch (msg.getNormalMsgType()) {
                 case BOOTSTRAP_NODE_LIST:
                     for (Node n : ((HashMap<String, Node>) msg.getData()).values()) {
-                        if (!Preferences.node_addresses.containsKey(n.getName())) {
+                        if (!this.node_addresses.containsKey(n.getName())) {
                             try {
-                                Preferences.nodes.put(n.getName(), n);
-                                Preferences.node_addresses.put(n.getName(), n.getAdrress());
+                            	this.nodes.put(n.getName(), n);
+                                this.node_addresses.put(n.getName(), n.getAdrress());
                             } catch (UnknownHostException e) {
                                 e.printStackTrace();
                             }
-                            Preferences.node_names.put(n.getIndex(), n.getName());
+                            this.node_names.put(n.getIndex(), n.getName());
                             causalVector.setSize(Math.max(causalVector.size(), n.getIndex() + 1));
                             causalVector.set(n.getIndex(), 0);
                         }
                     }
-                    Preferences.host_index = Preferences.nodes.get(host_name).getIndex();
-                    clock = ClockFactory.initializeClock(clockType, Preferences.nodes.size());
+                    Preferences.host_index = this.nodes.get(host_name).getIndex();
+                    clock = ClockFactory.initializeClock(clockType, this.nodes.size());
                     announcePresence();
                     bootstrapComplete = true;
                     return;
                 case ALIVE:
                     Node newNode = (Node) msg.getData();
-                    Preferences.nodes.put(newNode.getName(), newNode);
+                    this.nodes.put(newNode.getName(), newNode);
                     return;
                 case REMOVE_NODE:
-                    synchronized(Preferences.nodes){
-                        Preferences.node_names.remove(Preferences.nodes.get((String)msg.getData()).getIndex());
-                        Preferences.nodes.remove((String)msg.getData());
-                        Preferences.node_addresses.remove((String)msg.getData());
+                    synchronized(this.nodes){
+                        this.node_names.remove(this.nodes.get((String)msg.getData()).getIndex());
+                        this.nodes.remove((String)msg.getData());
+                        this.node_addresses.remove((String)msg.getData());
                     }
                     return;
             }
@@ -646,7 +691,7 @@ public class MessagePasser extends Thread {
     public void updateTime(Message msg, String process) {
         if (process.equalsIgnoreCase("receive") && msg instanceof TimeStampedMessage) {
             if (clock instanceof VectorClock) {
-                ((VectorClock) clock).updateTime(((TimeStampedMessage) msg).getClockService());
+                ((VectorClock) clock).updateTime(((TimeStampedMessage) msg).getClockService(), this.nodes.size());
                 ((TimeStampedMessage) msg).setEventID("E" + (Preferences.host_index + 1)
                         + ((((VectorClock) clock).getTime(Preferences.host_index)) + 1));
             } else {
@@ -656,7 +701,7 @@ public class MessagePasser extends Thread {
                         + nextId);
                 ((LogicalClock) clock).updateTime(((TimeStampedMessage) msg).getClockService());
             }
-            clock.incrementTime((Preferences.nodes.get(host_name)).getIndex());
+            clock.incrementTime((this.nodes.get(host_name)).getIndex());
             ((TimeStampedMessage) msg).setClock(clock);
 
         }
@@ -666,7 +711,7 @@ public class MessagePasser extends Thread {
     }
 
     private void deliverMessage(MulticastMessage msg) {
-        msg.setMsgReceived((Preferences.nodes.get(host_name)).getIndex());
+        msg.setMsgReceived((this.nodes.get(host_name)).getIndex());
         /* If the message is a normal msg from application layer
          * 1. Add the hold back queue
          * 2. Send an acknowledgement to all the processes in the group
@@ -674,7 +719,7 @@ public class MessagePasser extends Thread {
          */
         switch (msg.getMessageType()) {
             case TASK_ADV:
-                boolean[] received = new boolean[Preferences.nodes.size()];
+                boolean[] received = new boolean[this.nodes.size()];
                 for (int i = 0; i < received.length; i++) {
                     received[i] = true;
                 }
@@ -707,13 +752,13 @@ public class MessagePasser extends Thread {
             case ALIVE:
                 System.out.println("Getting presence message");
                 Node newNode = (Node) msg.getData();
-                Preferences.nodes.put(newNode.getName(), newNode);
+                this.nodes.put(newNode.getName(), newNode);
                 try {
-                    Preferences.node_addresses.put(newNode.getName(), newNode.getAdrress());
+                    this.node_addresses.put(newNode.getName(), newNode.getAdrress());
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
                 }
-                Preferences.node_names.put(newNode.getIndex(), newNode.getName());
+                this.node_names.put(newNode.getIndex(), newNode.getName());
                 causalVector.setSize(Math.max(causalVector.size(), newNode.getIndex() + 1));
                 causalVector.set(newNode.getIndex(), 0);
                 ((VectorClock) clock).update(newNode.getIndex());
@@ -738,7 +783,7 @@ public class MessagePasser extends Thread {
                 break;
 
             case RUT:
-                msg.msgReceived[(Preferences.nodes.get(host_name)).getIndex()] = true;
+                msg.msgReceived[(this.nodes.get(host_name)).getIndex()] = true;
                 msg.msgType = MulticastMessage.MessageType.UPDATE_STATE;
                 updateHoldBackQueue((MulticastMessage) msg);
                 processHoldBackQueue();
@@ -765,7 +810,7 @@ public class MessagePasser extends Thread {
                                 }
                             }
                             if (((Integer) (msg.clock.getTime())).equals((Integer) (clock.getTime()))) {
-                                if (Preferences.nodes.get(host_name).getIndex() < Preferences.nodes.get(msg.getSource()).getIndex()) {
+                                if (this.nodes.get(host_name).getIndex() < this.nodes.get(msg.getSource()).getIndex()) {
 //                                    System.out.println("WANT: Message from " + msg.getSource() + " added to mutexQueue");
                                     synchronized (mutexQueue) {
                                         mutexQueue.add(msg);
@@ -791,7 +836,7 @@ public class MessagePasser extends Thread {
                                     }
                                 }
                                 if (((Integer) (msg.clock.getTime())).equals((Integer) (clock.getTime()))) {
-                                    if (Preferences.nodes.get(host_name).getIndex() < Preferences.nodes.get(msg.getSource()).getIndex()) {
+                                    if (this.nodes.get(host_name).getIndex() < this.nodes.get(msg.getSource()).getIndex()) {
                                         synchronized (mutexQueue) {
                                             mutexQueue.add(msg);
                                         }
@@ -829,7 +874,7 @@ public class MessagePasser extends Thread {
                 boolean mutextAcquired = true;
                 if (process_state == Process_State.WANTED) {
                     synchronized (arrMutexAckReceived) {
-                        arrMutexAckReceived[Preferences.nodes.get(msg.source).getIndex()] = true;
+                        arrMutexAckReceived[this.nodes.get(msg.source).getIndex()] = true;
                         for (boolean b : arrMutexAckReceived) {
                             if (b == false) {
                                 mutextAcquired = false;
@@ -860,15 +905,15 @@ public class MessagePasser extends Thread {
                 }
                 synchronized (inQueue) {
                     synchronized (causalVector) {
-                        if (causalVector.get(Preferences.nodes.get(mqe.getMessage().getSource()).getIndex())
-                                >= new Integer(((Vector) mqe.getMessage().getClockService().getTime()).get(Preferences.nodes.get(mqe.getMessage().getSource()).getIndex()).toString())) {
+                        if (causalVector.get(this.nodes.get(mqe.getMessage().getSource()).getIndex())
+                                >= new Integer(((Vector) mqe.getMessage().getClockService().getTime()).get(this.nodes.get(mqe.getMessage().getSource()).getIndex()).toString())) {
                             holdBackQueue.remove(mqe);
 //                            System.out.println("Duplicate message removed:" + mqe.timeStamp);
                         } else {
-                            if (causalVector.get(Preferences.nodes.get(mqe.getMessage().getSource()).getIndex()) + 1
-                                    == new Integer(((Vector) mqe.getMessage().getClockService().getTime()).get(Preferences.nodes.get(mqe.getMessage().getSource()).getIndex()).toString())) {
+                            if (causalVector.get(this.nodes.get(mqe.getMessage().getSource()).getIndex()) + 1
+                                    == new Integer(((Vector) mqe.getMessage().getClockService().getTime()).get(this.nodes.get(mqe.getMessage().getSource()).getIndex()).toString())) {
                                 inQueue.add(mqe.getMessage());
-                                causalVector.setElementAt(new Integer(mqe.getTimeStamp().get(Preferences.nodes.get(mqe.getMessage().getSource()).getIndex()).toString()), Preferences.nodes.get(mqe.getMessage().getSource()).getIndex());
+                                causalVector.setElementAt(new Integer(mqe.getTimeStamp().get(this.nodes.get(mqe.getMessage().getSource()).getIndex()).toString()), this.nodes.get(mqe.getMessage().getSource()).getIndex());
                                 holdBackQueue.remove(mqe);
 //                                System.out.println("Message removed from hold back queue: " + mqe.getTimeStamp() + " " + causalVector);
                             }
@@ -893,7 +938,7 @@ public class MessagePasser extends Thread {
          */
         while (arrayIterator.hasNext()) {
             mqe = (MessageQueueEntry) arrayIterator.next();
-            int msgSrcIndex = Preferences.nodes.get(msg.getSource()).getIndex();
+            int msgSrcIndex = this.nodes.get(msg.getSource()).getIndex();
             if (msg.getSource().equalsIgnoreCase(mqe.message.getSource())
                     && (((Vector) msg.getClockService().getTime()).elementAt(msgSrcIndex).toString().equalsIgnoreCase(
                     mqe.getTimeStamp().elementAt(msgSrcIndex).toString()))) {
@@ -935,10 +980,10 @@ public class MessagePasser extends Thread {
                         boolean[] msgReceivedArray = smallest.getMsgReceivedArray();
                         for (int i = 0; i < msgReceivedArray.length; i++) {
                             if (!msgReceivedArray[i]) {
-                                System.out.println("Sending RUT message to: " + Preferences.node_names.get(i)
+                                System.out.println("Sending RUT message to: " + this.node_names.get(i)
                                         + " for message: " + smallest.timeStamp);
                                 MulticastMessage rutMsg = new MulticastMessage(smallest.getMessage(), MulticastMessage.MessageType.RUT);
-                                rutMsg.setDest(Preferences.node_names.get(i));
+                                rutMsg.setDest(this.node_names.get(i));
                                 sendMsgThroSocket(rutMsg);
                             }
                         }
@@ -994,7 +1039,7 @@ public class MessagePasser extends Thread {
     private int compareTimestamps(Vector<Integer> vFirst, Vector<Integer> vSecond) {
         int result = 0;
         for (int i = 0; i
-                < Preferences.nodes.size(); i++) {
+                < this.nodes.size(); i++) {
             if (vFirst.get(i) < vSecond.get(i)) {
                 if (result > 0) {
                     result = 0;
@@ -1015,8 +1060,8 @@ public class MessagePasser extends Thread {
     }
 
     private void announcePresence() {
-        Collection<Node> nodes = Preferences.nodes.values();
-        Message presenceMsg = new Message("", "", "", Preferences.nodes.get(host_name), host_name);
+        Collection<Node> nodes = this.nodes.values();
+        Message presenceMsg = new Message("", "", "", this.nodes.get(host_name), host_name);
         presenceMsg.setSource(host_name);
         presenceMsg.setNormalMsgType(Message.NormalMsgType.ALIVE);
         for (Node n : nodes) {
@@ -1041,7 +1086,7 @@ public class MessagePasser extends Thread {
                 }
             }
             if (!hasEntry) {
-                int msgSrcIndex = Preferences.nodes.get(msg.getSource()).getIndex();
+                int msgSrcIndex = this.nodes.get(msg.getSource()).getIndex();
                 int msgSeqNum = new Integer(((Vector) msg.getClockService().getTime()).get(msgSrcIndex).toString());
                 if ((msg.msgType != MulticastMessage.MessageType.UPDATE_STATE && causalVector.get(msgSrcIndex) >= msgSeqNum)
                         || (msg.msgType == MulticastMessage.MessageType.UPDATE_STATE && causalVector.get(msgSrcIndex) < msgSeqNum)) {

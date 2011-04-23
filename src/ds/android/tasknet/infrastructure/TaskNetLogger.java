@@ -55,17 +55,21 @@ public class TaskNetLogger implements ActionListener {
     Map<String, ArrayList<String>> nodeLogs;
     MessagePasser mp;
     String host_name;
+    Map<String, Node> nodes = new HashMap<String, Node>();
+	Map<Integer, String> node_names = new HashMap<Integer, String>();
+	Map<String, InetAddress> node_addresses = new HashMap<String, InetAddress>();
 
     public TaskNetLogger(String host_name, String conf_file) {
 
     	this.host_name = host_name;
         Preferences.setHostDetails(conf_file, host_name);
         try {
-            mp = new MessagePasser(conf_file, host_name, InetAddress.getByName("127.0.0.1").getHostAddress());
+            mp = new MessagePasser(conf_file, host_name, InetAddress.getByName("127.0.0.1").getHostAddress(),
+            		this.nodes, this.node_names, this.node_addresses);
         } catch (UnknownHostException ex) {
             Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
         }
-        numberOfClients = Preferences.nodes.size();
+        numberOfClients = this.nodes.size();
         nodeLogTextAreaMap = new HashMap<String, JTextArea>();
         nodeFrameMap = new HashMap<String, JFrame>();
         nodeLogs = new HashMap<String, ArrayList<String>>();
@@ -120,7 +124,7 @@ public class TaskNetLogger implements ActionListener {
         if (nodeName.isEmpty()) {
             JOptionPane.showMessageDialog(null, "Enter Node name", "Node name",
                     JOptionPane.WARNING_MESSAGE);
-        } else if (!Preferences.node_names.containsValue(nodeName)) {
+        } else if (!this.node_names.containsValue(nodeName)) {
             JOptionPane.showMessageDialog(null,
                     "Node does not exist in the system", "Node name",
                     JOptionPane.WARNING_MESSAGE);
@@ -146,22 +150,22 @@ public class TaskNetLogger implements ActionListener {
                             switch (msg.getNormalMsgType()) {
                                 case BOOTSTRAP:
                                     Node newNode = (Node) msg.getData();
-                                    newNode.setNodeIndex(Preferences.nodes.size());
+                                    newNode.setNodeIndex(nodes.size());
                                     createNewLogFrame(newNode.getName());
                                     try {
                                         System.out.println(newNode.getAdrress());
                                     } catch (UnknownHostException ex) {
                                         Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
                                     }
-                                    Preferences.nodes.put(msg.getSource(), newNode);
+                                    nodes.put(msg.getSource(), newNode);
                                     try {
-                                        Preferences.node_addresses.put(newNode.getName(), newNode.getAdrress());
+                                        node_addresses.put(newNode.getName(), newNode.getAdrress());
                                     } catch (UnknownHostException ex) {
                                         Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
                                     }
-                                    Preferences.node_names.put(newNode.getIndex(), newNode.getName());
+                                    node_names.put(newNode.getIndex(), newNode.getName());
                                     Message bootstrapNodeList = new Message(msg.getSource(),
-                                            "", "", (Serializable) Preferences.nodes, host_name);
+                                            "", "", (Serializable) nodes, host_name);
                                     bootstrapNodeList.setNormalMsgType(Message.NormalMsgType.BOOTSTRAP_NODE_LIST);
                                     try {
                                         mp.send(bootstrapNodeList);
@@ -175,13 +179,13 @@ public class TaskNetLogger implements ActionListener {
                                     nodeLogTextAreaMap.get(msg.getLogSource()).append(msg.getData().toString());
                                     break;
                                 case PROFILE_UPDATE:
-                                    System.out.println("Receiving update info");
+//                                    System.out.println("Receiving update info");
                                     Node nodeToBeUpdated = (Node) msg.getData();
-                                    synchronized (Preferences.nodes) {
-                                        int mem = (int) nodeToBeUpdated.getMemoryCapacity() - 1;
+                                    synchronized (nodes) {
+                                        int mem = (int) nodeToBeUpdated.getMemoryLoad() - 1;
                                         int procload = (int) nodeToBeUpdated.getProcessorLoad() - 1;
                                         int batterylevel = nodeToBeUpdated.getBatteryLevel() - 1;
-                                        (Preferences.nodes.get(nodeToBeUpdated.getName())).update(mem, procload, batterylevel);
+                                        (nodes.get(nodeToBeUpdated.getName())).update(mem, procload, batterylevel);
                                     }
                                     repaintPanel();
                                     break;
@@ -223,11 +227,11 @@ public class TaskNetLogger implements ActionListener {
     }
 
     private void initComponents() {
-        Object[] nodes;
-        synchronized (Preferences.nodes) {
-            nodes = Preferences.nodes.values().toArray();
+        Object[] nodeList;
+        synchronized (this.nodes) {
+            nodeList = this.nodes.values().toArray();
         }
-        numberOfClients = nodes.length;
+        numberOfClients = nodeList.length;
         if (numberOfClients > 0) {
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.insets = new Insets(15, 15, 15, 15);
@@ -237,15 +241,15 @@ public class TaskNetLogger implements ActionListener {
 
             batteryProgressBars = new JProgressBar[numberOfClients];
             for (int i = 0; i < numberOfClients; i++) {
-                batteryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 100);
-                batteryProgressBars[i].setValue(((Node) nodes[i]).getBatteryLevel());
+                batteryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, Preferences.TOTAL_BATTREY_AT_NODE);
+                batteryProgressBars[i].setValue(((Node) nodeList[i]).getBatteryLevel());
             }
 
             int numberOfRows = 10;
             for (int i = 0; i < numberOfClients; i++) {
                 batteryPanel.add(batteryProgressBars[i], gbc);
                 gbc.gridy++;
-                batteryPanel.add(new JLabel(((Node) nodes[i]).getName()), gbc);
+                batteryPanel.add(new JLabel(((Node) nodeList[i]).getName()), gbc);
                 gbc.gridy--;
                 gbc.gridx++;
                 if ((i + 1) % numberOfRows == 0) {
@@ -264,14 +268,15 @@ public class TaskNetLogger implements ActionListener {
 
             memoryProgressBars = new JProgressBar[numberOfClients];
             for (int i = 0; i < numberOfClients; i++) {
-                memoryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 100);
-                memoryProgressBars[i].setValue((int) ((Node) nodes[i]).getMemoryCapacity());
+                memoryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 
+                		0, Preferences.TOTAL_MEMORY_LOAD_AT_NODE);
+                memoryProgressBars[i].setValue((int) ((Node) nodeList[i]).getMemoryLoad());
             }
 
             for (int i = 0; i < numberOfClients; i++) {
                 memoryPanel.add(memoryProgressBars[i], gbc);
                 gbc.gridy++;
-                memoryPanel.add(new JLabel(((Node) nodes[i]).getName()), gbc);
+                memoryPanel.add(new JLabel(((Node) nodeList[i]).getName()), gbc);
                 gbc.gridy--;
                 gbc.gridx++;
                 if ((i + 1) % numberOfRows == 0) {
@@ -289,14 +294,15 @@ public class TaskNetLogger implements ActionListener {
 
             cpuLoadProgressBars = new JProgressBar[numberOfClients];
             for (int i = 0; i < numberOfClients; i++) {
-                cpuLoadProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 100);
-                cpuLoadProgressBars[i].setValue((int) ((Node) nodes[i]).getProcessorLoad());
+                cpuLoadProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 
+                		Preferences.TOTAL_PROCESSOR_LOAD_AT_NODE);
+                cpuLoadProgressBars[i].setValue((int) ((Node) nodeList[i]).getProcessorLoad());
             }
 
             for (int i = 0; i < numberOfClients; i++) {
                 cpuLoadPanel.add(cpuLoadProgressBars[i], gbc);
                 gbc.gridy++;
-                cpuLoadPanel.add(new JLabel(((Node) nodes[i]).getName()), gbc);
+                cpuLoadPanel.add(new JLabel(((Node) nodeList[i]).getName()), gbc);
                 gbc.gridy--;
                 gbc.gridx++;
                 if ((i + 1) % numberOfRows == 0) {
@@ -330,7 +336,7 @@ public class TaskNetLogger implements ActionListener {
                     try {
                         Thread.sleep(Preferences.PROFILE_UPDATE_TIME_PERIOD);
                         ArrayList<String> nodesToRemove = new ArrayList<String>();
-                        for (Node n : Preferences.nodes.values()) {
+                        for (Node n : nodes.values()) {
                             synchronized (n) {
                                 if (n.getLastUpdated() != null
                                         && ((Calendar.getInstance().getTime().getTime() - n.getLastUpdated().getTime())
@@ -342,14 +348,14 @@ public class TaskNetLogger implements ActionListener {
                         int numOfNodesToRemove = nodesToRemove.size();
                         for (int i = 0; i < numOfNodesToRemove; i++) {
                             String nodeToRemove = nodesToRemove.get(i);
-                            synchronized (Preferences.nodes) {
-                                Preferences.node_names.remove(Preferences.nodes.get(nodeToRemove).getIndex());
-                                Preferences.nodes.remove(nodeToRemove);
-                                Preferences.node_addresses.remove(nodeToRemove);
+                            synchronized (nodes) {
+                                node_names.remove(nodes.get(nodeToRemove).getIndex());
+                                nodes.remove(nodeToRemove);
+                                node_addresses.remove(nodeToRemove);
                             }
                             Message removeMessage = new Message("", "", "", nodeToRemove, host_name);
                             removeMessage.setNormalMsgType(Message.NormalMsgType.REMOVE_NODE);
-                            for (Node n : Preferences.nodes.values()) {
+                            for (Node n : nodes.values()) {
                                 removeMessage.setDest(n.getName());
                                 mp.send(removeMessage);
                                 Thread.sleep(100);

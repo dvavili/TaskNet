@@ -13,8 +13,9 @@ public class DistributedTask extends Task implements Serializable {
     Serializable[] parameters;
     Integer sequenceNumber;
 
-    public DistributedTask(Integer load, String id, String src, String clsName, String method, Serializable[] params) {
-        super(load, id, src);
+    public DistributedTask(float processorload, long memoryload, Integer battreyload, 
+    		String id, String src, String clsName, String method, Serializable[] params) {
+        super(processorload, memoryload, battreyload, id, src);
         className = clsName;
         methodName = method;
         parameters = params;

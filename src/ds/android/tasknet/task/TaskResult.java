@@ -16,8 +16,9 @@ public class TaskResult extends Task implements Serializable {
     Serializable taskResult;
     Integer seqNumber;
 
-    public TaskResult(Integer load, String id, String src, Serializable result, Integer seqNumber) {
-        super(load, id, src);
+    public TaskResult(float processorload, long memoryload, Integer battreyload, 
+    		String id, String src, Serializable result, Integer seqNumber) {
+    	super(processorload, memoryload, battreyload, id, src);
         taskResult = result;
         this.seqNumber = seqNumber;
     }
