@@ -181,11 +181,16 @@ public class TaskNetLogger implements ActionListener {
                                 case PROFILE_UPDATE:
 //                                    System.out.println("Receiving update info");
                                     Node nodeToBeUpdated = (Node) msg.getData();
-                                    synchronized (nodes) {
+                                    try{
+                                    	synchronized (nodes) {
                                         int mem = (int) nodeToBeUpdated.getMemoryLoad() - 1;
                                         int procload = (int) nodeToBeUpdated.getProcessorLoad() - 1;
                                         int batterylevel = nodeToBeUpdated.getBatteryLevel() - 1;
                                         (nodes.get(nodeToBeUpdated.getName())).update(mem, procload, batterylevel);
+                                    	}
+                                    }catch(Exception e)
+                                    {
+                                    	e.getStackTrace();
                                     }
                                     repaintPanel();
                                     break;

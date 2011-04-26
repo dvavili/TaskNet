@@ -83,7 +83,8 @@ public class TaskNetNode implements ActionListener {
         if (ae.getSource() == btnDistributeTask) {
             distributor.distribute(tfMethodName.getText(), new Integer(tfTaskLoad.getText()));
         } else if (ae.getSource() == btnExecuteLocalTask) {
-            System.out.println((new Integer((new SampleApplicationLocal()).method1(10, 20))).toString());
+            //System.out.println((new ArrayList<Double>((new SampleApplicationLocal()).method1(10, 20))).toString());
+        	distributor.executeTaskLocally(tfMethodName.getText(), new Integer(tfTaskLoad.getText()));
         }
     }
 }

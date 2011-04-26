@@ -713,6 +713,18 @@ public class TaskDistributor {
 	public void setNodes(Map<String, Node> nodes) {
 		this.nodes = nodes;
 	}
+	public void executeTaskLocally(String methodName, Integer taskLoad)
+	{
+		int remainingLoad = Preferences.TOTAL_PROCESSOR_LOAD_AT_NODE - Preferences.RESERVED_PROCESSOR_AT_NODE ;
+		int taskLoops = (int) Math.ceil((float)taskLoad / remainingLoad);
+		SampleApplicationLocal localApp = new SampleApplicationLocal();
+		ArrayList<ArrayList<Double>> mfcc_parameters = new ArrayList<ArrayList<Double>>();
+		for(int i=0;i<taskLoops;i++)
+		{
+			mfcc_parameters.add(localApp.method1(10, 20));
+		}
+		logMessage("Local Result from "+host+":"+mfcc_parameters.toString());
+	}
     
     
 }
