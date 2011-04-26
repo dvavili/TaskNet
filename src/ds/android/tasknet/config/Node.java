@@ -39,7 +39,7 @@ public class Node implements Serializable {
         nodePort = port;
         memoryLoad = 0;
         processorLoad = 0;
-        batteryLevel = Preferences.TOTAL_BATTREY_AT_NODE;
+        batteryLevel = Preferences.TOTAL_BATTERY_AT_NODE;
         promisedBattreyLoad = 0;
         lastUpdated = null;
     }

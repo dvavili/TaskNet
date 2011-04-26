@@ -85,7 +85,7 @@ public class TaskNetLogger implements ActionListener {
         nodeNamePanel.add(btnShowLog);
 
         mainPanel = new JPanel();
-        panel = new JPanel(new FlowLayout());
+        panel = new JPanel();
         taLogArea = new JTextArea(10, 60);
         taLogArea.setEditable(false);
         scrollPane = new JScrollPane(taLogArea,
@@ -113,7 +113,8 @@ public class TaskNetLogger implements ActionListener {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
         frame.setResizable(false);
-        frame.setSize(800, 500);
+//        frame.setSize(800, 500);
+        frame.setSize(1000, 700);
 
         listenForIncomingMessages();
         monitorNodeUpdates();
@@ -183,9 +184,9 @@ public class TaskNetLogger implements ActionListener {
                                     Node nodeToBeUpdated = (Node) msg.getData();
                                     try{
                                     	synchronized (nodes) {
-                                        int mem = (int) nodeToBeUpdated.getMemoryLoad() - 1;
-                                        int procload = (int) nodeToBeUpdated.getProcessorLoad() - 1;
-                                        int batterylevel = nodeToBeUpdated.getBatteryLevel() - 1;
+                                        int mem = (int) nodeToBeUpdated.getMemoryLoad();
+                                        int procload = (int) nodeToBeUpdated.getProcessorLoad();
+                                        int batterylevel = nodeToBeUpdated.getBatteryLevel();
                                         (nodes.get(nodeToBeUpdated.getName())).update(mem, procload, batterylevel);
                                     	}
                                     }catch(Exception e)
@@ -246,7 +247,8 @@ public class TaskNetLogger implements ActionListener {
 
             batteryProgressBars = new JProgressBar[numberOfClients];
             for (int i = 0; i < numberOfClients; i++) {
-                batteryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, Preferences.TOTAL_BATTREY_AT_NODE);
+                batteryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, Preferences.TOTAL_BATTERY_AT_NODE);
+                batteryProgressBars[i].setSize(10, 30);
                 batteryProgressBars[i].setValue(((Node) nodeList[i]).getBatteryLevel());
             }
 
@@ -339,13 +341,13 @@ public class TaskNetLogger implements ActionListener {
             public void run() {
                 while (true) {
                     try {
-                        Thread.sleep(Preferences.PROFILE_UPDATE_TIME_PERIOD);
+                        Thread.sleep(2 * Preferences.PROFILE_UPDATE_TIME_PERIOD);
                         ArrayList<String> nodesToRemove = new ArrayList<String>();
                         for (Node n : nodes.values()) {
                             synchronized (n) {
                                 if (n.getLastUpdated() != null
                                         && ((Calendar.getInstance().getTime().getTime() - n.getLastUpdated().getTime())
-                                        > 2 * Preferences.PROFILE_UPDATE_TIME_PERIOD)) {
+                                        > 4 * Preferences.PROFILE_UPDATE_TIME_PERIOD)) {
                                     nodesToRemove.add(n.getName());
                                 }
                             }
@@ -366,8 +368,9 @@ public class TaskNetLogger implements ActionListener {
                                 Thread.sleep(100);
                             }
                             nodesToRemove.remove(nodeToRemove);
-                            repaintPanel();
                         }
+                        if(numOfNodesToRemove > 0)
+                            repaintPanel();
                     } catch (InvalidMessageException ex) {
                         Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
                     } catch (InterruptedException ex) {
@@ -375,6 +378,7 @@ public class TaskNetLogger implements ActionListener {
                     }
                 }
             }
+            
         }).start();
     }
 }

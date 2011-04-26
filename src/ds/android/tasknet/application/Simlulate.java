@@ -18,10 +18,8 @@ public class Simlulate {
 		List<TaskDistributor> nodeList = new ArrayList<TaskDistributor>();
 		int nodeCount = 10;
 		for(int i=0;i<nodeCount;i++) {
-			String host = "alice" + i;
-			String conf_file = "C:\\personal\\shekhar\\synched\\My Dropbox\\cmu_course_work" +
-					"\\18842_distributed_systems\\git_repo\\TaskNet_Divya\\TaskNet\\src\\ds" +
-					"\\android\\tasknet\\config\\ppfile.ini";
+			String host = "a" + i;
+			String conf_file = "C:\\Users\\Divya_PKV\\Documents\\NetBeansProjects\\TaskNet_Dynamic_Grp\\src\\ds\\android\\tasknet\\config\\ppfile.ini";
 			TaskDistributor distributor = new TaskDistributor(host, conf_file, "127.0.0.1");
 			nodeList.add(distributor);
 		}
@@ -51,7 +49,7 @@ public class Simlulate {
 			}
 		}	
 		for(int i=0;i<nodeCount;i++) {
-			System.out.println(nodeList.get(i).getNodes().get("alice"+i).getBatteryLevel());
+			System.out.println(nodeList.get(i).getNodes().get("a"+i).getBatteryLevel());
 		}
 		System.out.println("");
 		System.out.println("Toal load distributed " + totalLoad);
