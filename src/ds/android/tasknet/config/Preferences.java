@@ -47,8 +47,8 @@ public class Preferences {
     public static final int BATTERY_SPENT_IN_COMMUNICATION_RECEIVE = 1;
     public static final int BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION = 10;
     public static final int BATTERY_SPENT_IN_TASK_DISTRIBUTION = 20;
-    public static final int NODE_BATTERY_INFO_QUEUE_SIZE = 5;
-    public static final int MINIMUM_LOAD_REQUEST = 10;
+    public static final int NODE_BATTERY_INFO_QUEUE_SIZE = 1;
+    public static final int MINIMUM_LOAD_REQUEST = 0;
     public static final int MAX_TASK_CHUNK_LOAD_SIZE = 200;
     public static final int NUMBER_OF_RETRIES_BEFORE_QUITTING = 3;
     public static final int TIMEOUT_LOAD_PROMISE = 500;
@@ -67,14 +67,16 @@ public class Preferences {
 
         DISTRIBUTED, RECEIVED
     };
-    public static final int NUMBER_PACKETS_NETWORK_STABLIZE = 10;
-    public static final float ALPHA_MAX = 3.0f;
-    public static final float ALPHA_MIN = 1.0f;
+    public static final int NUMBER_PACKETS_NETWORK_STABLIZE = 20;
+    public static final float ALPHA_MAX = 4.0f;
+    public static final float ALPHA_MIN = 1.2f;
+    public static final float ALPHA_SAFE = 2.0f;
+    public static final float ALPHA_POSITIVE_RANGE = 0.2f;
     public static final float BETA = 1.0f;
-    public static final float GAMA = 0.5f;
+    public static final float GAMA = 0.8f;
     public static final int TASK_DEFAULT_CPU_LOAD = 15;
     public static final int TASK_DEFAULT_MEMORY_LOAD = 32;
-    public static final boolean DEBUG_MODE = true;
+    public static final boolean DEBUG_MODE = false;
 
     public static void setHostDetails(String configuration_filename,
             String local_host) {
