@@ -48,7 +48,7 @@ public class Preferences {
     public static final int BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION = 10;
     public static final int BATTERY_SPENT_IN_TASK_DISTRIBUTION = 20;
     public static final int NODE_BATTERY_INFO_QUEUE_SIZE = 1;
-    public static final int MINIMUM_LOAD_REQUEST = 0;
+    public static final int MINIMUM_FRAGMENTATION_LOAD = 100;
     public static final int MAX_TASK_CHUNK_LOAD_SIZE = 200;
     public static final int NUMBER_OF_RETRIES_BEFORE_QUITTING = 3;
     public static final int TIMEOUT_LOAD_PROMISE = 500;
@@ -59,12 +59,10 @@ public class Preferences {
     public static String crashNode;
 
     public static enum TASK_STATUS {
-
         ADVERTISED, DISTRIBUTED, RECEIVED_RESULTS
     };
 
     public static enum TASK_CHUNK_STATUS {
-
         DISTRIBUTED, RECEIVED
     };
     public static final int NUMBER_PACKETS_NETWORK_STABLIZE = 20;
@@ -92,11 +90,9 @@ public class Preferences {
             COORDINATOR = prop.getProperty("COORDINATOR");
             host_initial_load = host_reserved_load = 10;
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE,
-                    null, ex);
+            Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE,
-                    null, ex);
+            Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 }

@@ -58,7 +58,7 @@ public class TaskDistributor {
     int advReplyCount;
     float avgNodeLoad;
     float varianceNodeLoad;
-    Map<String, Queue<BattreyInfo>> battreyLoadInfo = new HashMap<String, Queue<BattreyInfo>>();
+    Map<String, Queue<BatteryInfo>> batteryLoadInfo = new HashMap<String, Queue<BatteryInfo>>();
 
     public TaskDistributor(String host_name, String conf_file, String IPaddress) {
         prop = new Properties();
@@ -98,13 +98,13 @@ public class TaskDistributor {
                                         Task receivedTask = (Task) msg.getData();
                                         synchronized (nodes) {
                                             logMessage("Received task advertisement from: " + msg.getSource()
-                                            		+ " for load " + receivedTask.getTaskBattreyLoad());                                            
+                                                    + " for load " + receivedTask.getTaskBatteryLoad());
                                             Node host_node = nodes.get(host);
-                                            if(receivedTask.getTaskBattreyLoad() <= 0) {
-                                            	System.out.println(" node "  + host_node.getName() 
-                                            			+ " recevied task of battrey load "
-                                            			+ receivedTask.getTaskBattreyLoad());
-                                            	break;
+                                            if (receivedTask.getTaskBatteryLoad() <= 0) {
+                                                System.out.println(" node " + host_node.getName()
+                                                        + " recevied task of battery load "
+                                                        + receivedTask.getTaskBatteryLoad());
+                                                break;
                                             }
                                             if (receivedTask.getTaskProcessorLoad()
                                                     > (Preferences.TOTAL_PROCESSOR_LOAD_AT_NODE
@@ -139,34 +139,33 @@ public class TaskDistributor {
                                             }
 
 
-                                            int remaining_battrey_load = host_node.getBatteryLevel()
-                                                    - (receivedTask.getTaskBattreyLoad()
+                                            int remaining_battery_load = host_node.getBatteryLevel()
+                                                    - (receivedTask.getTaskBatteryLoad()
                                                     + Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION
-                                                    + host_node.getPromisedBattreyLoad());
-                                            int battreyLoadCanServe = 0;
-                                            if (remaining_battrey_load > Preferences.RESERVED_BATTERY_AT_NODE) {
-                                                battreyLoadCanServe = receivedTask.getTaskBattreyLoad();
+                                                    + host_node.getPromisedBatteryLoad());
+                                            int batteryLoadCanServe = 0;
+                                            if (remaining_battery_load > Preferences.RESERVED_BATTERY_AT_NODE) {
+                                                batteryLoadCanServe = receivedTask.getTaskBatteryLoad();
                                             } else {
                                                 // Need to change this to avoid fragmentation
-                                                battreyLoadCanServe = host_node.getBatteryLevel()
+                                                batteryLoadCanServe = host_node.getBatteryLevel()
                                                         - (Preferences.RESERVED_BATTERY_AT_NODE
                                                         + Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION
-                                                        + host_node.getPromisedBattreyLoad());
+                                                        + host_node.getPromisedBatteryLoad());
                                             }
-                                            if (battreyLoadCanServe > Preferences.MAX_TASK_CHUNK_LOAD_SIZE) {
-                                            	battreyLoadCanServe = Preferences.MAX_TASK_CHUNK_LOAD_SIZE;
+                                            if (batteryLoadCanServe > Preferences.MAX_TASK_CHUNK_LOAD_SIZE) {
+                                                batteryLoadCanServe = Preferences.MAX_TASK_CHUNK_LOAD_SIZE;
                                             }
 
-                                            if (battreyLoadCanServe > Preferences.MINIMUM_LOAD_REQUEST) {
+                                            if (batteryLoadCanServe > Preferences.MINIMUM_FRAGMENTATION_LOAD) {
                                                 Integer tempTaskAdvReplyId = ++taskAdvReplyId;
                                                 String tempTaskAdvReplyIdStr = host_node.getName()
                                                         + tempTaskAdvReplyId;
-                                                receivedTask.setPromisedTaskBattreyLoad(battreyLoadCanServe
+                                                receivedTask.setPromisedTaskBatteryLoad(batteryLoadCanServe
                                                         + Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION);
                                                 receivedTask.setPromisedTimeStamp(new Date().getTime());
                                                 host_node.addToAcceptedTask(tempTaskAdvReplyIdStr, receivedTask);
-                                                host_node.incrPromisedBattreyLoad(
-                                                        receivedTask.getPromisedBattreyTaskLoad());
+                                                host_node.incrPromisedBatteryLoad(receivedTask.getPromisedBatteryTaskLoad());
 
                                                 //add processor, memory load
                                                 host_node.incrProcessorLoad(receivedTask.getTaskProcessorLoad());
@@ -175,7 +174,7 @@ public class TaskDistributor {
                                                 TaskAdvReply taskAdvReply = new TaskAdvReply(
                                                         tempTaskAdvReplyIdStr,
                                                         receivedTask.getTaskId(),
-                                                        host_node, battreyLoadCanServe);
+                                                        host_node, batteryLoadCanServe);
                                                 Message profileMsg = new Message(
                                                         msg.getSource(),
                                                         "", "", taskAdvReply, host);
@@ -194,8 +193,8 @@ public class TaskDistributor {
                                                     host_node.removeFromAcceptedTask(tempTaskAdvReplyIdStr);
                                                     host_node.decrProcessorLoad(receivedTask.getTaskProcessorLoad());
                                                     host_node.decrMemoryLoad(receivedTask.getTaskMemoryLoad());
-                                                    host_node.decrPromisedBattreyLoad(
-                                                            receivedTask.getPromisedBattreyTaskLoad());
+                                                    host_node.decrPromisedBatteryLoad(
+                                                            receivedTask.getPromisedBatteryTaskLoad());
                                                     ex.printStackTrace();
                                                 } catch (UnknownHostException e) {
                                                     // block
@@ -204,16 +203,16 @@ public class TaskDistributor {
                                                 logMessage("Sent message profile for task: "
                                                         + receivedTask.taskId
                                                         + " "
-                                                        + remaining_battrey_load);
+                                                        + remaining_battery_load);
                                             } else {
-                                            	System.out.println("Node Overloaded " + host_node.getName() 
-                                            			+ " battreyLoadCanServe " + battreyLoadCanServe
-                                            			+ " remaining_battrey_load " + remaining_battrey_load
-                                            			+ " received load " + receivedTask.getTaskBattreyLoad()
-                                            			+ " prmised load " + host_node.getPromisedBattreyLoad());
+                                                System.out.println("Node Overloaded " + host_node.getName()
+                                                        + " batteryLoadCanServe " + batteryLoadCanServe
+                                                        + " remaining_battery_load " + remaining_battery_load
+                                                        + " received load " + receivedTask.getTaskBatteryLoad()
+                                                        + " prmised load " + host_node.getPromisedBatteryLoad());
                                                 logMessage("Node Overloaded: "
                                                         + receivedTask.taskId + " "
-                                                        + battreyLoadCanServe);
+                                                        + batteryLoadCanServe);
                                             }
                                         }
                                         break;
@@ -239,55 +238,52 @@ public class TaskDistributor {
                                         // taMessages.append(taskChunk.toString());
                                         DistributedTask distTask = taskChunk.getDsTask();
                                         Node host_node = nodes.get(host);
- 
+
                                         TaskResult result;
                                         Map<Integer, TaskResult> tempResults = taskResults.get(distTask.getTaskId());
-                                         if (tempResults != null
-                                         &&
-                                         tempResults.get(distTask.getSeqNumber())
-                                         != null) {
-                                         result =
-                                         taskResults.get(distTask.getTaskId()).get(taskChunk.getSequenceNumber());
-                                         } else {
-	                                        //check if we have accepted its request already
-	                                        //if not, do nothing
-	                                        if (host_node.getAcceptedTaskByTaskId(taskChunk.getTaskAdvReplyId()) == null) {
-	                                            break;
-	                                        }
-	                                        host_node.getAcceptedTaskByTaskId(taskChunk.getTaskAdvReplyId()).setInExecution(true);                                        
-	                                        result = new TaskResult(
-	                                                distTask.getTaskProcessorLoad(),
-	                                                distTask.getTaskMemoryLoad(),
-	                                                distTask.getTaskBattreyLoad(),
-	                                                distTask.taskId, host,
-	                                                handleDistributedTask(distTask),
-	                                                taskChunk.getSequenceNumber());
-	
-	                                        if (tempResults == null) {
-	                                            tempResults = new HashMap<Integer, TaskResult>();
-	                                        }
-	
-	                                        tempResults.put(
-	                                                taskChunk.getSequenceNumber(),
-	                                                result);
-	                                        taskResults.put(distTask.getTaskId(),
-	                                                tempResults);
-                                         
-	
-	                                        //we are finish with task-chunk execution
-	                                        //decrease promise
-	                                        int loadServed = host_node.getAcceptedTaskByTaskId(
-	                                                taskChunk.getTaskAdvReplyId()).getPromisedBattreyTaskLoad();
-	                                        if (host_node.getAcceptedTaskByTaskId(taskChunk.getTaskAdvReplyId()) != null) {
-	                                            host_node.decrPromisedBattreyLoad(loadServed);
-	                                        }
-	                                        host_node.removeFromAcceptedTask(taskChunk.getTaskAdvReplyId());
-	                                        //decrease battery load
-	                                        nodes.get(host).decrBatteryLevel(loadServed);
-	                                        //decrease processor/memory load
-	                                        host_node.decrProcessorLoad(distTask.getTaskProcessorLoad());
-	                                        host_node.decrMemoryLoad(distTask.getTaskMemoryLoad());
-                                		}
+                                        if (tempResults != null && tempResults.get(distTask.getSeqNumber()) != null) {
+                                            result = taskResults.get(distTask.getTaskId()).get(taskChunk.getSequenceNumber());
+                                        } else {
+                                            //check if we have accepted its request already
+                                            //if not, do nothing
+                                            if (host_node.getAcceptedTaskByTaskId(taskChunk.getTaskAdvReplyId()) == null) {
+                                                break;
+                                            }
+                                            Task acceptedTask = host_node.getAcceptedTaskByTaskId(taskChunk.getTaskAdvReplyId());
+                                            acceptedTask.setInExecution(true);
+                                            result = new TaskResult(
+                                                    acceptedTask.getTaskProcessorLoad(),
+                                                    acceptedTask.getTaskMemoryLoad(),
+                                                    acceptedTask.getPromisedBatteryTaskLoad(),
+                                                    distTask.taskId, host,
+                                                    handleDistributedTask(distTask),
+                                                    taskChunk.getSequenceNumber());
+
+                                            if (tempResults == null) {
+                                                tempResults = new HashMap<Integer, TaskResult>();
+                                            }
+
+                                            tempResults.put(
+                                                    taskChunk.getSequenceNumber(),
+                                                    result);
+                                            taskResults.put(distTask.getTaskId(),
+                                                    tempResults);
+
+
+                                            //we are finish with task-chunk execution
+                                            //decrease promise
+                                            int loadServed = host_node.getAcceptedTaskByTaskId(
+                                                    taskChunk.getTaskAdvReplyId()).getPromisedBatteryTaskLoad();
+                                            if (host_node.getAcceptedTaskByTaskId(taskChunk.getTaskAdvReplyId()) != null) {
+                                                host_node.decrPromisedBatteryLoad(loadServed);
+                                            }
+                                            host_node.removeFromAcceptedTask(taskChunk.getTaskAdvReplyId());
+                                            //decrease battery load
+                                            nodes.get(host).decrBatteryLevel(loadServed);
+                                            //decrease processor/memory load
+                                            host_node.decrProcessorLoad(distTask.getTaskProcessorLoad());
+                                            host_node.decrMemoryLoad(distTask.getTaskMemoryLoad());
+                                        }
 
                                         logMessage(result.getTaskResult().toString());
                                         Message resultMsg = new Message(distTask.getSource(), "", "",
@@ -329,50 +325,14 @@ public class TaskDistributor {
                 }
             }
 
-            private Serializable handleDistributedTask(DistributedTask gotTask) {
-                try {
-                    Class cl = Class.forName(gotTask.getClassName());
-                    HashMap<String, Class[]> mthdDef = new HashMap<String, Class[]>();
-                    Method mthds[] = cl.getDeclaredMethods();
-                    for (Method m : mthds) {
-                        mthdDef.put(m.getName(), m.getParameterTypes());
-                    }
-                    if (gotTask.getParameters() != null && ((mthdDef.get(gotTask.getMethodName())).length
-                            != gotTask.getParameters().length)) {
-                        logMessage("Parameters don\'t match");
-                    } else {
-                        Class params[] = mthdDef.get(gotTask.getMethodName());
-                        Object parameters[] = (Object[]) gotTask.getParameters();
-                        try {
-                            Method invokedMethod = cl.getMethod(gotTask.getMethodName(), params);
-                            return (Serializable) invokedMethod.invoke(new SampleApplicationLocal(), parameters);
-                        } catch (IllegalAccessException ex) {
-                            ex.printStackTrace();
-                        } catch (InvocationTargetException ex) {
-                            ex.printStackTrace();
-                        } catch (IllegalArgumentException e) {
-                            e.printStackTrace();
-                        } catch (SecurityException e) {
-                            e.printStackTrace();
-                        } catch (NoSuchMethodException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-                return null;
-            }
-
             private synchronized void distributeTask(TaskAdvReply taskAdvReply) {
-                String taskId = taskAdvReply.getTaskId();
+                final String taskId = taskAdvReply.getTaskId();
                 Node node = taskAdvReply.getNode();
                 TaskLookup taskLookup = taskLookups.get(taskId);
                 Task taskToDistribute = (taskLookups.get(taskId)).getTask();
-                int loadDistributed;
 
                 // Check this code
-                if (taskToDistribute.getTaskBattreyLoad() <= 0) {
+                if (taskToDistribute.getTaskBatteryLoad() <= 0) {
                     return;
                 }
                 //------------------------
@@ -385,19 +345,24 @@ public class TaskDistributor {
                     return;
                 }
 
-                loadDistributed = (int) Math.ceil((taskToDistribute.getTaskBattreyLoad()
+                final int loadDistributed = (int) Math.ceil((taskToDistribute.getTaskBatteryLoad()
                         > taskAdvReply.getLoadCanServe())
-                        ? (taskAdvReply.getLoadCanServe()) : taskToDistribute.getTaskBattreyLoad());
+                        ? (taskAdvReply.getLoadCanServe()) : taskToDistribute.getTaskBatteryLoad());
 
-                
-                
-	                taskToDistribute.setTaskBattreyLoad(taskToDistribute.getTaskBattreyLoad() - loadDistributed);
-	                if (taskToDistribute.getTaskBattreyLoad() <= 0) {
-	                    taskLookup.setStatus(Preferences.TASK_STATUS.DISTRIBUTED);
-	                }
-                
-                
-                
+                taskToDistribute.setTaskBatteryLoad(taskToDistribute.getTaskBatteryLoad() - loadDistributed);
+//                if (taskToDistribute.getTaskBatteryLoad() <= Preferences.MINIMUM_FRAGMENTATION_LOAD) {
+//                    if (taskToDistribute.getTaskBatteryLoad() > 0) {
+//                        (new Thread() {
+//
+//                            public void run() {
+//                                executeMethodLocally(taskId, loadDistributed);
+//                            }
+//                        }).start();
+//                        taskLookup.setStatus(Preferences.TASK_STATUS.DISTRIBUTED);
+//                        return;
+//                    }
+//                    taskLookup.setStatus(Preferences.TASK_STATUS.DISTRIBUTED);
+//                }
 
                 Serializable[] parameters = new Serializable[2];
                 parameters[0] = 10;
@@ -406,7 +371,12 @@ public class TaskDistributor {
                         taskToDistribute.getTaskMemoryLoad(),
                         loadDistributed, taskId,
                         taskToDistribute.getSource(),
-                        "ds.android.tasknet.application.SampleApplicationLocal", "method1", parameters);
+                        taskLookup.getClassName(), taskLookup.getMethodName(), taskLookup.getParams());
+//                DistributedTask dsTask = new DistributedTask(taskToDistribute.getTaskProcessorLoad(),
+//                        taskToDistribute.getTaskMemoryLoad(),
+//                        loadDistributed, taskId,
+//                        taskToDistribute.getSource(),
+//                        "ds.android.tasknet.application.SampleApplicationLocal", "method1", parameters);
                 TaskChunk taskChunk = new TaskChunk(taskId, node, taskLookup.nextSequenceNumber(),
                         dsTask, taskAdvReply.getTaskAdvReplyId());
                 taskLookup.addToTaskGroup(taskChunk.getTaskAdvReplyId(), taskChunk);
@@ -427,7 +397,7 @@ public class TaskDistributor {
 
             private boolean isNodeSuitableForDistribution(Node node, TaskLookup taskLookup) {
 //                return isNodeSuitableForNaiveDistributionCheck(node, taskLookup);
-            	return isNodeSuitableForEfficientDistributionCheck(node, taskLookup);
+                return isNodeSuitableForEfficientDistributionCheck(node, taskLookup);
             }
 
             private boolean isNodeSuitableForNaiveDistributionCheck(Node node, TaskLookup taskLookup) {
@@ -444,16 +414,16 @@ public class TaskDistributor {
                 float beta = Preferences.BETA;
                 float gama = Preferences.GAMA;
                 float weight = beta;
-                BattreyInfo oldBattreyInfo = null;
+                BatteryInfo oldBatteryInfo = null;
                 float lastAvgNodeLoad;
 
-                Queue<BattreyInfo> nodeBattreyLoadInfo = battreyLoadInfo.get(node.getName());
-                if (nodeBattreyLoadInfo == null) {
-                    nodeBattreyLoadInfo = new LinkedList<BattreyInfo>();
-                    battreyLoadInfo.put(node.getName(), nodeBattreyLoadInfo);
+                Queue<BatteryInfo> nodeBatteryLoadInfo = batteryLoadInfo.get(node.getName());
+                if (nodeBatteryLoadInfo == null) {
+                    nodeBatteryLoadInfo = new LinkedList<BatteryInfo>();
+                    batteryLoadInfo.put(node.getName(), nodeBatteryLoadInfo);
                 }
-                if (nodeBattreyLoadInfo.size() >= Preferences.NODE_BATTERY_INFO_QUEUE_SIZE) {
-                    oldBattreyInfo = nodeBattreyLoadInfo.remove();
+                if (nodeBatteryLoadInfo.size() >= Preferences.NODE_BATTERY_INFO_QUEUE_SIZE) {
+                    oldBatteryInfo = nodeBatteryLoadInfo.remove();
                 }
 
                 advReplyTotalCount++;
@@ -461,16 +431,16 @@ public class TaskDistributor {
                 if (advReplyCount > 1) {
                     double stdDevNodeLoad = Math.sqrt(varianceNodeLoad / advReplyCount);
                     //forget about old
-                    if (oldBattreyInfo != null) {
+                    if (oldBatteryInfo != null) {
                         advReplyCount--;
                         lastAvgNodeLoad = avgNodeLoad;
                         avgNodeLoad = avgNodeLoad
-                                - (oldBattreyInfo.getWeight()
-                                * ((oldBattreyInfo.getBattreyLoad() - avgNodeLoad) / advReplyCount));
+                                - (oldBatteryInfo.getWeight()
+                                * ((oldBatteryInfo.getBatteryLoad() - avgNodeLoad) / advReplyCount));
 
                         varianceNodeLoad = varianceNodeLoad
-                                - (oldBattreyInfo.getWeight() * ((oldBattreyInfo.getBattreyLoad() - lastAvgNodeLoad)
-                                * (oldBattreyInfo.getBattreyLoad() - avgNodeLoad)));
+                                - (oldBatteryInfo.getWeight() * ((oldBatteryInfo.getBatteryLoad() - lastAvgNodeLoad)
+                                * (oldBatteryInfo.getBatteryLoad() - avgNodeLoad)));
 
                     }
                     //in start, avg can fluctuate very much
@@ -482,20 +452,19 @@ public class TaskDistributor {
                                 * (Preferences.ALPHA_MAX - Preferences.ALPHA_MIN));
                     }
                     //if number of nodes are less, network is more volatile
-                    alpha =  alpha + (22 - nodes.size())*(Preferences.ALPHA_SAFE - Preferences.ALPHA_MIN)/20.0f;
-                    
-                    if ((node.getBatteryLevel() - avgNodeLoad) > (Preferences.ALPHA_POSITIVE_RANGE * stdDevNodeLoad )) {
+                    alpha = alpha + (22 - nodes.size()) * (Preferences.ALPHA_SAFE - Preferences.ALPHA_MIN) / 20.0f;
+
+                    if ((node.getBatteryLevel() - avgNodeLoad) > (Preferences.ALPHA_POSITIVE_RANGE * stdDevNodeLoad)) {
                         //out of range don't choose this node
                         isSuitable = true;
-                    }                    
-                    else if (Math.abs(node.getBatteryLevel() - avgNodeLoad) > (alpha * stdDevNodeLoad )) {
+                    } else if (Math.abs(node.getBatteryLevel() - avgNodeLoad) > (alpha * stdDevNodeLoad)) {
                         //out of range don't choose this node
                         isSuitable = false;
                     }
-                    System.out.println("node " + node.getName() + ": battrey " 
-                    		+ node.getBatteryLevel() + " avgNodeLoad "  + avgNodeLoad
-                    		+ " stdDevNodeLoad " + stdDevNodeLoad + " alpha " + alpha 
-                    		+ " isSuitable " + isSuitable);
+                    System.out.println("node " + node.getName() + ": battery "
+                            + node.getBatteryLevel() + " avgNodeLoad " + avgNodeLoad
+                            + " stdDevNodeLoad " + stdDevNodeLoad + " alpha " + alpha
+                            + " isSuitable " + isSuitable);
                 }
 
                 advReplyCount++;
@@ -505,7 +474,7 @@ public class TaskDistributor {
                     weight = gama;
                 }
 
-                nodeBattreyLoadInfo.add(new BattreyInfo(node.getBatteryLevel(), weight));
+                nodeBatteryLoadInfo.add(new BatteryInfo(node.getBatteryLevel(), weight));
                 avgNodeLoad = avgNodeLoad + weight * ((node.getBatteryLevel() - avgNodeLoad) / advReplyCount);
                 if (advReplyCount == 1) {
                     varianceNodeLoad = 0;
@@ -517,25 +486,122 @@ public class TaskDistributor {
 
                 return isSuitable;
             }
+        }).start();
+    }
 
-            private void addAndMergeResults(TaskResult taskResult) {
-                TaskLookup taskLookup = taskLookups.get(taskResult.getTaskId());
-                taskLookup.getTaskResults().put(taskResult.getSeqNumber(), taskResult);
-                if (taskLookup.getTask().getTaskBattreyLoad() <= 0
-                        && taskLookup.getTaskGroup().size() == taskLookup.getTaskResults().size()) {
-                    taskLookup.setStatus(Preferences.TASK_STATUS.RECEIVED_RESULTS);
-                }
-                //Merge results
-                if (taskLookup.getStatus() == Preferences.TASK_STATUS.RECEIVED_RESULTS) {
-                    String result = "";
-                    for (int i = 0; i < taskLookup.getTaskResults().size(); i++) {
-                        result += (taskLookup.getTaskResults().get(i)).toString() + " ";
-                    }
-                    logMessage("Result:\n" + result);
-                    nodes.get(host).decrBatteryLevel(Preferences.BATTERY_SPENT_IN_TASK_DISTRIBUTION);
+    void executeMethodLocally(String taskId, int loadDistributed) {
+        System.out.println("Executing locally");
+        TaskLookup taskLookup = taskLookups.get(taskId);
+        Task taskToDistribute = (taskLookups.get(taskId)).getTask();
+        Node host_node = nodes.get(host);
+        int remaining_battery_load = host_node.getBatteryLevel()
+                - (loadDistributed
+                + Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION
+                + host_node.getPromisedBatteryLoad());
+        int batteryLoadCanServe = 0;
+        if (remaining_battery_load > Preferences.RESERVED_BATTERY_AT_NODE) {
+            batteryLoadCanServe = taskToDistribute.getPromisedBatteryTaskLoad();
+        } else {
+            // Need to change this to avoid fragmentation
+            batteryLoadCanServe = host_node.getBatteryLevel()
+                    - (Preferences.RESERVED_BATTERY_AT_NODE
+                    + Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION
+                    + host_node.getPromisedBatteryLoad());
+        }
+        if (batteryLoadCanServe < taskToDistribute.getPromisedBatteryTaskLoad()) {
+            return;
+        }
+//        taskToDistribute.setPromisedTaskBatteryLoad(batteryLoadCanServe
+//                + Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION);
+        taskToDistribute.setPromisedTimeStamp(new Date().getTime());
+        host_node.incrPromisedBatteryLoad(taskToDistribute.getPromisedBatteryTaskLoad());
+
+        //add processor, memory load
+        host_node.incrProcessorLoad(taskToDistribute.getTaskProcessorLoad());
+        host_node.incrMemoryLoad(taskToDistribute.getTaskMemoryLoad());
+        DistributedTask dsTask = new DistributedTask(taskToDistribute.getTaskProcessorLoad(),
+                taskToDistribute.getTaskMemoryLoad(),
+                taskToDistribute.getPromisedBatteryTaskLoad(), taskId,
+                taskToDistribute.getSource(),
+                taskLookup.getClassName(), taskLookup.getMethodName(), taskLookup.getParams());
+        TaskChunk taskChunk = new TaskChunk(taskId, nodes.get(host), taskLookup.nextSequenceNumber(),
+                dsTask, host + (++taskAdvReplyId));
+        taskLookup.addToTaskGroup(taskChunk.getTaskAdvReplyId(), taskChunk);
+        taskLookup.addToResultTracker(taskChunk.getSequenceNumber(), taskChunk.getTaskAdvReplyId());
+        TaskResult taskResult = new TaskResult(dsTask.getTaskProcessorLoad(),
+                dsTask.getTaskMemoryLoad(),
+                dsTask.getTaskBatteryLoad(),
+                dsTask.taskId, host,
+                handleDistributedTask(dsTask),
+                taskChunk.getSequenceNumber());
+        //decrease battery load
+        host_node.decrBatteryLevel(taskToDistribute.getPromisedBatteryTaskLoad());
+        //decrease processor/memory load
+        host_node.decrProcessorLoad(dsTask.getTaskProcessorLoad());
+        host_node.decrMemoryLoad(dsTask.getTaskMemoryLoad());
+        host_node.decrPromisedBatteryLoad(taskToDistribute.getPromisedBatteryTaskLoad());
+        Integer seqNumber = taskResult.getSeqNumber();
+        taskLookup = taskLookups.get(taskResult.getTaskId());
+        synchronized (taskLookup) {
+            taskLookup.getTaskGroup().get(taskLookup.getResultTracker().get(taskResult.getSeqNumber())).setStatus(Preferences.TASK_CHUNK_STATUS.RECEIVED);
+            taskLookup.removeFromResultTracker(seqNumber);
+            addAndMergeResults(taskResult);
+        }
+    }
+
+    private Serializable handleDistributedTask(DistributedTask gotTask) {
+        try {
+            Class cl = Class.forName(gotTask.getClassName());
+            HashMap<String, Class[]> mthdDef = new HashMap<String, Class[]>();
+            Method mthds[] = cl.getDeclaredMethods();
+            for (Method m : mthds) {
+                mthdDef.put(m.getName(), m.getParameterTypes());
+            }
+            if (gotTask.getParameters() != null && ((mthdDef.get(gotTask.getMethodName())).length
+                    != gotTask.getParameters().length)) {
+                logMessage("Parameters don\'t match");
+            } else {
+                Class params[] = mthdDef.get(gotTask.getMethodName());
+                Object parameters[] = (Object[]) gotTask.getParameters();
+                try {
+                    Method invokedMethod = cl.getMethod(gotTask.getMethodName(), params);
+                    return (Serializable) invokedMethod.invoke(new SampleApplicationLocal(), parameters);
+                } catch (IllegalAccessException ex) {
+                    ex.printStackTrace();
+                } catch (InvocationTargetException ex) {
+                    ex.printStackTrace();
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                } catch (SecurityException e) {
+                    e.printStackTrace();
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
                 }
             }
-        }).start();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private void addAndMergeResults(TaskResult taskResult) {
+        TaskLookup taskLookup = taskLookups.get(taskResult.getTaskId());
+        taskLookup.getTaskResults().put(taskResult.getSeqNumber(), taskResult);
+        if (taskLookup.getTask().getTaskBatteryLoad() <= 0
+                && taskLookup.getTaskGroup().size() == taskLookup.getTaskResults().size()) {
+            taskLookup.setStatus(Preferences.TASK_STATUS.RECEIVED_RESULTS);
+        }
+        //Merge results
+        if (taskLookup.getStatus() == Preferences.TASK_STATUS.RECEIVED_RESULTS) {
+            String result = "";
+            for (Integer rs:taskLookup.getTaskResults().keySet()) {
+                TaskResult tempTaskResult = taskLookup.getTaskResults().get(rs);
+                System.out.println(host + ":: received result from " + tempTaskResult.getSource() + " for load " + (tempTaskResult.getTaskBatteryLoad() - Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION));
+                result += (taskLookup.getTaskResults().get(rs)).toString() + " ";
+            }
+            logMessage("Result:\n" + result);
+            nodes.get(host).decrBatteryLevel(Preferences.BATTERY_SPENT_IN_TASK_DISTRIBUTION);
+        }
     }
 
     private void logMessage(String msgString) {
@@ -557,7 +623,6 @@ public class TaskDistributor {
             public void run() {
                 while (taskChunk.getStatus() != Preferences.TASK_CHUNK_STATUS.RECEIVED
                         && taskChunk.getRetry() < Preferences.NUMBER_OF_RETRIES_BEFORE_QUITTING) {
-
                     try {
                         taskLookups.get(((DistributedTask) taskToDistribute).getTaskId()).addToResultTracker(taskChunk.getSequenceNumber(), taskChunk.getTaskAdvReplyId());
                         mp.send(distMsg);
@@ -571,8 +636,8 @@ public class TaskDistributor {
                     }
                 }
                 if (taskChunk.getStatus() != Preferences.TASK_CHUNK_STATUS.RECEIVED) {
-                    taskToDistribute.setTaskBattreyLoad(taskToDistribute.getTaskBattreyLoad() + loadDistributed);
-                    if (taskToDistribute.getTaskBattreyLoad() > 0) {
+                    taskToDistribute.setTaskBatteryLoad(taskToDistribute.getTaskBatteryLoad() + loadDistributed);
+                    if (taskToDistribute.getTaskBatteryLoad() > 0) {
                         taskLookup.setStatus(Preferences.TASK_STATUS.ADVERTISED);
                     }
                 }
@@ -606,21 +671,27 @@ public class TaskDistributor {
         }).start();
     }
 
-    public void distribute(String methodName, Integer taskBattreyLoad) {
+    public void distribute(String className, String methodName, Serializable[] params, Integer taskBatteryLoad) {
         String nodeName = "";
         String msgKind = "";
         String msgId = "";
         taskNum++;
-        String taskId = host + taskNum;
+        final String taskId = host + taskNum;
         Task newTask = new Task(Preferences.TASK_DEFAULT_CPU_LOAD, Preferences.TASK_DEFAULT_MEMORY_LOAD,
-                taskBattreyLoad, taskId, host);
+                taskBatteryLoad, taskId, host);
         logMessage("Task advertised");
-        TaskLookup taskLookup = new TaskLookup(newTask);
+        TaskLookup taskLookup = new TaskLookup(newTask, className, methodName, params);
         synchronized (taskLookups) {
             taskLookups.put(taskId, taskLookup);
         }
-        Message advMsg = new Message(nodeName, msgKind, msgId,
-                newTask, host);
+        if (newTask.getTaskBatteryLoad() <= Preferences.MINIMUM_FRAGMENTATION_LOAD) {
+            if (newTask.getTaskBatteryLoad() > 0) {
+                executeTaskLocally(newTask.getTaskId(), newTask.getTaskBatteryLoad());
+                taskLookups.remove(taskId);
+                return;
+            }
+        }
+        Message advMsg = new Message(nodeName, msgKind, msgId, newTask, host);
         advMsg.setSource(host);
         advMsg.setNormalMsgType(Message.NormalMsgType.TASK_ADV);
         sendAndRetryTaskAdv(taskLookup, advMsg);
@@ -636,7 +707,9 @@ public class TaskDistributor {
                 // if it still hasn't exhausted its retry and still hasn't got
                 // enough reply
                 while (taskLookup.getStatus() == Preferences.TASK_STATUS.ADVERTISED
-                        && taskLookup.getRetry() < Preferences.NUMBER_OF_RETRIES_BEFORE_QUITTING) {
+                        && taskLookup.getRetry() < Preferences.NUMBER_OF_RETRIES_BEFORE_QUITTING
+                        && taskLookup.getTask().getTaskBatteryLoad()
+                        > Preferences.MINIMUM_FRAGMENTATION_LOAD) {
 
                     logMessage("Tasklookup status : " + taskLookup.getStatus()
                             + " Retries: " + taskLookup.getRetry());
@@ -648,8 +721,11 @@ public class TaskDistributor {
                                 for (Node n : nodesTemp) {
                                     if (!n.getName().equalsIgnoreCase(host)) {
                                         advMsg.setDest(n.getName());
-                                        if(taskLookup.getStatus() == Preferences.TASK_STATUS.DISTRIBUTED)
-                                        	break;                                        
+                                        if (taskLookup.getStatus() == Preferences.TASK_STATUS.DISTRIBUTED
+                                                || taskLookup.getTask().getTaskBatteryLoad()
+                                                <= Preferences.MINIMUM_FRAGMENTATION_LOAD) {
+                                            break;
+                                        }
                                         mp.send(advMsg);
                                         Thread.sleep(100);
                                     }
@@ -662,12 +738,23 @@ public class TaskDistributor {
                         e.printStackTrace();
                     }
                     taskLookup.incrRetry();
+
                     try {
                         if (taskLookup.getRetry() < Preferences.NUMBER_OF_RETRIES_BEFORE_QUITTING) {
                             Thread.sleep(Preferences.WAIT_TIME_BEFORE_RETRYING);
                         }
                     } catch (InterruptedException e) {
                     }
+                }
+                if (taskLookup.getStatus() == Preferences.TASK_STATUS.ADVERTISED
+                        && taskLookup.getTask().getTaskBatteryLoad() > 0
+                        && taskLookup.getTask().getTaskBatteryLoad()
+                        <= Preferences.MINIMUM_FRAGMENTATION_LOAD) {
+                    int load = taskLookup.getTask().getTaskBatteryLoad();
+                    taskLookup.getTask().setTaskBatteryLoad(0);
+                    taskLookup.getTask().setPromisedTaskBatteryLoad(load
+                        + Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION);
+                    executeMethodLocally(taskLookup.getTask().getTaskId(), load);
                 }
             }
         }).start();
@@ -696,7 +783,7 @@ public class TaskDistributor {
                             for (String taskId : removedTasks) {
                                 Task task = host_node.getAcceptedTaskByTaskId(taskId);
                                 //decrease promise
-                                host_node.decrPromisedBattreyLoad(task.getPromisedBattreyTaskLoad());
+                                host_node.decrPromisedBatteryLoad(task.getPromisedBatteryTaskLoad());
                                 host_node.removeFromAcceptedTask(taskId);
 
                                 //decrease processor/memory load
@@ -713,23 +800,23 @@ public class TaskDistributor {
         }).start();
     }
 
-    private class BattreyInfo {
+    private class BatteryInfo {
 
-        private Integer battreyLoad;
+        private Integer batteryLoad;
         private float weight;
 
-        public BattreyInfo(Integer battreyLoad, float weight) {
+        public BatteryInfo(Integer batteryLoad, float weight) {
             super();
-            this.battreyLoad = battreyLoad;
+            this.batteryLoad = batteryLoad;
             this.weight = weight;
         }
 
-        public Integer getBattreyLoad() {
-            return battreyLoad;
+        public Integer getBatteryLoad() {
+            return batteryLoad;
         }
 
-        public void setBattreyLoad(Integer battreyLoad) {
-            this.battreyLoad = battreyLoad;
+        public void setBatteryLoad(Integer batteryLoad) {
+            this.batteryLoad = batteryLoad;
         }
 
         public float getWeight() {

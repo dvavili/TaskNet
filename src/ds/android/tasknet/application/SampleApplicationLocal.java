@@ -64,7 +64,7 @@ public class SampleApplicationLocal {
         System.out.println("Method3");
     }
 
-    public void method4() {
+    public void method4(int x, float y, String z, double d, int a, int b) {
         System.out.println("Method4");
     }
 }

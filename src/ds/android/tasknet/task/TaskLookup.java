@@ -5,6 +5,7 @@
 package ds.android.tasknet.task;
 
 import ds.android.tasknet.config.Preferences;
+import java.io.Serializable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,6 +19,8 @@ import java.util.TreeMap;
 public class TaskLookup {
 
     Task task;
+    String className,methodName;
+    Serializable[] params;
     Map<String, TaskChunk> taskGroup;
     Map<Integer, String> resultTracker;
     Map<Integer, TaskResult> taskResults;
@@ -25,8 +28,11 @@ public class TaskLookup {
     Enum<Preferences.TASK_STATUS> status;
     int retry;
 
-    public TaskLookup(Task task) {
+    public TaskLookup(Task task, String className, String methodName, Serializable[] params) {
         this.task = task;
+        this.className = className;
+        this.methodName = methodName;
+        this.params = params;
         this.taskGroup = new HashMap<String, TaskChunk>();
         this.resultTracker = new HashMap<Integer, String>();
         this.taskResults = new TreeMap<Integer, TaskResult>();
@@ -37,6 +43,18 @@ public class TaskLookup {
 
     public Task getTask() {
         return task;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public String getMethodName() {
+        return methodName;
+    }
+
+    public Serializable[] getParams() {
+        return params;
     }
 
     public Map<Integer, String> getResultTracker() {

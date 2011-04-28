@@ -16,22 +16,22 @@ public class Task implements Serializable {
     private static final long serialVersionUID = 1L;
     public float taskProcessorLoad;
     public long taskMemoryLoad;
-    public Integer taskBattreyLoad;
-    public Integer promisedTaskBattreyLoad;
+    public Integer taskBatteryLoad;
+    public Integer promisedTaskBatteryLoad;
     public String taskId;
     public String taskSrc; 
     public boolean inExecution;
     public long promisedTimeStamp;
     Integer sequenceNumber;
 
-    public Task(float processorload, long memoryload, Integer battreyload, String id, String src) {
+    public Task(float processorload, long memoryload, Integer batteryload, String id, String src) {
         taskId = id;
         taskProcessorLoad = processorload;
         taskMemoryLoad = memoryload;
-        taskBattreyLoad = battreyload;
+        taskBatteryLoad = batteryload;
         taskSrc = src;
         sequenceNumber = -1;
-        promisedTaskBattreyLoad = 0;
+        promisedTaskBatteryLoad = 0;
         inExecution = false;
     }
 
@@ -39,16 +39,16 @@ public class Task implements Serializable {
         return taskSrc;
     }
 
-    public Integer getTaskBattreyLoad() {
-        return taskBattreyLoad;
+    public Integer getTaskBatteryLoad() {
+        return taskBatteryLoad;
     }
 
     public String getTaskId() {
         return taskId;
     }
 
-    public void setTaskBattreyLoad(Integer battreyLoad) {
-        taskBattreyLoad = battreyLoad;
+    public void setTaskBatteryLoad(Integer battreyLoad) {
+        taskBatteryLoad = battreyLoad;
     }
 
     public Integer getSeqNumber() {
@@ -59,12 +59,12 @@ public class Task implements Serializable {
         sequenceNumber = sNum;
     }
 
-	public Integer getPromisedBattreyTaskLoad() {
-		return promisedTaskBattreyLoad;
+	public Integer getPromisedBatteryTaskLoad() {
+		return promisedTaskBatteryLoad;
 	}
 
-	public void setPromisedTaskBattreyLoad(Integer promisedTaskBattreyLoad) {
-		this.promisedTaskBattreyLoad = promisedTaskBattreyLoad;
+	public void setPromisedTaskBatteryLoad(Integer promisedTaskBatteryLoad) {
+		this.promisedTaskBatteryLoad = promisedTaskBatteryLoad;
 	}
 
 	public float getTaskProcessorLoad() {

@@ -138,7 +138,7 @@ public class Node implements Serializable {
         return this.acceptedTasks.get(taskId);
     }
 
-    public int getPromisedBattreyLoad() {
+    public int getPromisedBatteryLoad() {
         return promisedBattreyLoad;
     }
 
@@ -146,11 +146,11 @@ public class Node implements Serializable {
         this.promisedBattreyLoad = promisedLoad;
     }
 
-    public void incrPromisedBattreyLoad(int promisedLoad) {
+    public void incrPromisedBatteryLoad(int promisedLoad) {
         this.promisedBattreyLoad += promisedLoad;
     }
 
-    public void decrPromisedBattreyLoad(int promisedLoad) {
+    public void decrPromisedBatteryLoad(int promisedLoad) {
         this.promisedBattreyLoad -= promisedLoad;
     }
 
