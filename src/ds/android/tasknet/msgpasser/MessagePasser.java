@@ -490,7 +490,7 @@ public class MessagePasser extends Thread {
                 if(this.nodes.get(host_name) == null
                 		|| (this.nodes.get(host_name).getBatteryLevel() 
                 				< Preferences.BATTERY_SPENT_IN_COMMUNICATION_RECEIVE)) {
-                	continue;
+                	   continue;
                 }
                 
                 //if source/dest is logger dont simulate energy consumption

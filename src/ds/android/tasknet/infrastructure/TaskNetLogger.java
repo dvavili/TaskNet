@@ -90,7 +90,7 @@ public class TaskNetLogger implements ActionListener {
         taLogArea.setEditable(false);
         scrollPane = new JScrollPane(taLogArea,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         mainPanel.add(nodeNamePanel);
         mainPanel.add(scrollPane);
 
@@ -216,7 +216,7 @@ public class TaskNetLogger implements ActionListener {
 
         nodeScrollPane = new JScrollPane(taNodeLog,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         nodePanel.add(new JLabel(nodeName.toUpperCase()));
         nodePanel.add(nodeScrollPane);
 

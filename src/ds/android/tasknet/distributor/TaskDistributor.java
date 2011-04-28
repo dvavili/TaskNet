@@ -84,7 +84,6 @@ public class TaskDistributor {
          */
 
         (new Thread() {
-
             @Override
             public void run() {
                 while (true) {
@@ -137,7 +136,6 @@ public class TaskDistributor {
 
                                                 break;
                                             }
-
 
                                             int remaining_battery_load = host_node.getBatteryLevel()
                                                     - (receivedTask.getTaskBatteryLoad()
