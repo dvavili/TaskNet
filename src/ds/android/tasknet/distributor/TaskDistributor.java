@@ -704,6 +704,7 @@ public class TaskDistributor {
         (new Thread() {
 
             public void run() {
+                boolean cannotDistribute = false;
                 // if it still hasn't exhausted its retry and still hasn't got
                 // enough reply
                 while (taskLookup.getStatus() == Preferences.TASK_STATUS.ADVERTISED
@@ -742,14 +743,15 @@ public class TaskDistributor {
                     try {
                         if (taskLookup.getRetry() < Preferences.NUMBER_OF_RETRIES_BEFORE_QUITTING) {
                             Thread.sleep(Preferences.WAIT_TIME_BEFORE_RETRYING);
-                        }
+                        } else
+                            cannotDistribute = true;
                     } catch (InterruptedException e) {
                     }
                 }
-                if (taskLookup.getStatus() == Preferences.TASK_STATUS.ADVERTISED
+                if (cannotDistribute==true || (taskLookup.getStatus() == Preferences.TASK_STATUS.ADVERTISED
                         && taskLookup.getTask().getTaskBatteryLoad() > 0
                         && taskLookup.getTask().getTaskBatteryLoad()
-                        <= Preferences.MINIMUM_FRAGMENTATION_LOAD) {
+                        <= Preferences.MINIMUM_FRAGMENTATION_LOAD)) {
                     int load = taskLookup.getTask().getTaskBatteryLoad();
                     taskLookup.getTask().setTaskBatteryLoad(0);
                     taskLookup.getTask().setPromisedTaskBatteryLoad(load

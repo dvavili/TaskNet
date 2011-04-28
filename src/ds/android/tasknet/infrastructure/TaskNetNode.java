@@ -36,6 +36,8 @@ public class TaskNetNode implements ActionListener {
     Class[] paramTypes;
     final int FRAME_WIDTH = 600;
     final int FRAME_HEIGHT = 150;
+    private Class[] params;
+    private JTextField[] paraNames;
 
     public TaskNetNode(String host_name, String conf_file, String ipAddr) {
         Preferences.setHostDetails(conf_file, host_name);
@@ -73,10 +75,10 @@ public class TaskNetNode implements ActionListener {
 
         btnDistributeTask = new JButton("Distribute task");
         btnDistributeTask.addActionListener(this);
-//        btnDistributeTask.setEnabled(false);
+        btnDistributeTask.setEnabled(false);
         btnExecuteLocalTask = new JButton("Execute Task Locally");
         btnExecuteLocalTask.addActionListener(this);
-//        btnExecuteLocalTask.setEnabled(false);
+        btnExecuteLocalTask.setEnabled(false);
 
         btnEnter = new JButton("Enter parameters");
         btnEnter.addActionListener(this);
@@ -131,29 +133,18 @@ public class TaskNetNode implements ActionListener {
             }
             if (ae.getSource() == btnDistributeTask) {
                 try {
-//                    String className = tfClassFile.getText().substring(0, tfClassFile.getText().indexOf(".class"));
-//                    String pTypes = "";
-//                    for (int i = 0; i < tfParams.length; i++) {
-//                        if (tfParams[i].getText().isEmpty()) {
-//                            JOptionPane.showMessageDialog(null, "Enter all the parameters", "Parameter error", JOptionPane.WARNING_MESSAGE);
-//                            return;
-//                        } else {
-//                            System.out.println("\n" + paramTypes[i].getSimpleName() + " " + tfParams[i].getText().getClass().toString());
-//                            paramsToSend[i] = (Serializable)paramTypes[i].cast((Object)tfParams[i].getText());
-//                            pTypes += " " + paramsToSend[i].getClass().toString();
-//                        }
-//                    }
-//                    System.out.println("Parameter types after conversion: " + pTypes);
-                    Serializable[] parameters = new Serializable[2];
-                    parameters[0] = 10;
-                    parameters[1] = 20;
-                    distributor.distribute(tfClassFile.getText().substring(0, tfClassFile.getText().indexOf(".class")), tfMethodName.getText(), parameters, new Integer(tfTaskLoad.getText()));
+                    paramsToSend = this.castParams();
+                    if (paramsToSend != null) {
+                        distributor.distribute(tfClassFile.getText().substring(0, tfClassFile.getText().indexOf(".class")), tfMethodName.getText(), paramsToSend, new Integer(tfTaskLoad.getText()));
+                    }
                 } catch (SecurityException ex) {
                     Logger.getLogger(TaskNetNode.class.getName()).log(Level.SEVERE, null, ex);
-                } 
+                }
             } else if (ae.getSource() == btnExecuteLocalTask) {
-                //System.out.println((new ArrayList<Double>((new SampleApplicationLocal()).method1(10, 20))).toString());
-                distributor.executeTaskLocally(tfMethodName.getText(), new Integer(tfTaskLoad.getText()));
+                paramsToSend = this.castParams();
+                if (paramsToSend != null) {
+                    distributor.executeTaskLocally(tfMethodName.getText(), new Integer(tfTaskLoad.getText()));
+                }
             } else if (ae.getSource() == btnEnter) {
                 if (tfClassFile.getText().isEmpty()) {
                     JOptionPane.showMessageDialog(null, "Choose class file", "Class File", JOptionPane.WARNING_MESSAGE);
@@ -161,8 +152,10 @@ public class TaskNetNode implements ActionListener {
                     JOptionPane.showMessageDialog(null, "Enter Method name", "Method Name", JOptionPane.WARNING_MESSAGE);
                 } else {
                     this.checkMethod(tfClassFile.getText(), tfMethodName.getText());
+                    btnExecuteLocalTask.setEnabled(true);
+                    btnDistributeTask.setEnabled(true);
                 }
-            }
+            } 
         }
     }
 
@@ -170,10 +163,9 @@ public class TaskNetNode implements ActionListener {
         try {
             boolean found = false;
             Method method = null;
-            String className = strClassName.substring(0, strClassName.indexOf(".class"));
-            Class aClass = Class.forName(className);
-//            Class aClass = Class.forName("ds.android.tasknet.application.SampleApplicationLocal");
+            Class aClass = Class.forName("ds.android.tasknet.application.SampleApplicationLocal");
             Method[] methods = aClass.getMethods();
+
             for (int i = 0; i < methods.length; i++) {
                 if (methods[i].getName().equals(methodName)) {
                     method = methods[i];
@@ -182,11 +174,14 @@ public class TaskNetNode implements ActionListener {
                 }
             }
             if (found == true) {
-                paramTypes = method.getParameterTypes();
-                for (int i = 0; i < paramTypes.length; i++) {
-                    System.out.print(paramTypes[i].getSimpleName() + " ");
+                Class[] paras = method.getParameterTypes();
+                paramsToSend = new Serializable[paras.length];
+                for (int i = 0; i < paras.length; i++) {
+                    System.out.print(paras[i].getSimpleName() + " ");
+                    paramsToSend[i] = paras[i];
                 }
-                this.repaintPanel(paramTypes.length, paramTypes);
+                this.params = paras;
+                this.repaintPanel(paras.length, paras);
             }
             if (found == false) {
                 JOptionPane.showMessageDialog(null, "Method doesn't exist", "Method Name", JOptionPane.WARNING_MESSAGE);
@@ -197,22 +192,105 @@ public class TaskNetNode implements ActionListener {
         }
     }
 
+    private Serializable[] castParams() {
+        System.out.println("");
+        Serializable[] castedParams = new Serializable[params.length];
+        String type;
+
+        for (int i = 0; i < this.params.length; i++) {
+            type = this.params[i].getSimpleName();
+            castedParams[i] = this.paraNames[i].getText();
+            if (type.equals("int") || type.equals("Integer")) {
+                try {
+                    castedParams[i] = Integer.parseInt(castedParams[i].toString());
+                } catch (java.lang.NumberFormatException e) {
+                    JOptionPane.showMessageDialog(null, "parameter type doesn't match (expect int)",
+                            "Method Name", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
+
+            } else if (type.equals("char") || type.equals("Character")) {
+                castedParams[i] = castedParams[i].toString().toCharArray();
+                if (castedParams[i].toString().length() > 1) {
+                    JOptionPane.showMessageDialog(null, "parameter type doesn't match (expect char)",
+                            "Method Name", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
+
+            } else if (type.equals("float") || type.equals("Float")) {
+                try {
+                    castedParams[i] = Float.parseFloat(castedParams[i].toString());
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(null, "parameter type doesn't match (expect float)",
+                            "Method Name", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
+
+            } else if (type.equals("double") || type.equals("Double")) {
+                try {
+                    castedParams[i] = Float.parseFloat(castedParams[i].toString());
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(null, "parameter type doesn't match (expect double)",
+                            "Method Name", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
+            } else if (type.equals("byte")) {
+                try {
+                    castedParams[i] = Byte.parseByte(castedParams[i].toString());
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(null, "parameter type doesn't match (expect byte)",
+                            "Method Name", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
+            } else if (type.equals("boolean")) {
+                castedParams[i] = new Boolean(castedParams[i].toString());
+                if (!(castedParams[i].equals("true") && castedParams[i].equals("false"))) {
+                    JOptionPane.showMessageDialog(null, "parameter type doesn't match (expect boolean)",
+                            "Method Name", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
+
+            } else if (type.equals("long")) {
+                try {
+                    castedParams[i] = Long.parseLong(castedParams[i].toString());
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(null, "parameter type doesn't match (expect long)",
+                            "Method Name", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
+            } else if (type.equals("short")) {
+                try {
+                    castedParams[i] = Short.parseShort(castedParams[i].toString());
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(null, "parameter type doesn't match (expect short)",
+                            "Method Name", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
+
+            }
+        }
+
+        return castedParams;
+    }
+
     private void repaintPanel(int paraNum, Class[] para) {
-        tfParams = new JTextField[paraNum];
-        GridLayout gridLayout = new GridLayout(paraNum, 2);
+        JTextField[] paras = new JTextField[paraNum];
+        GridLayout gridLayout = new GridLayout(paras.length, 2);
         gridLayout.setHgap(5);
         gridLayout.setVgap(5);
         mainFrame.setSize(FRAME_WIDTH, FRAME_HEIGHT + (paraNum * 30));
 
+
         paraPanel.removeAll();
         paraPanel.setLayout(gridLayout);
         paraPanel.setSize(400, paraNum * 30);
-        
+
         for (int i = 0; i < paraNum; i++) {
             paraPanel.add(new JLabel(para[i].getSimpleName() + ": "));
-            tfParams[i] = new JTextField(10);
-            paraPanel.add(tfParams[i]);
+            paras[i] = new JTextField(10);
+            paraPanel.add(paras[i]);
         }
+        this.paraNames = paras;
         paraPanel.revalidate();
     }
 }
