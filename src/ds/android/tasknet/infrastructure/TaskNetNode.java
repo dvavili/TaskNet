@@ -143,7 +143,7 @@ public class TaskNetNode implements ActionListener {
             } else if (ae.getSource() == btnExecuteLocalTask) {
                 paramsToSend = this.castParams();
                 if (paramsToSend != null) {
-                    distributor.executeTaskLocally(tfMethodName.getText(), new Integer(tfTaskLoad.getText()));
+                    distributor.executeTaskLocally(tfClassFile.getText().substring(0, tfClassFile.getText().indexOf(".class")), tfMethodName.getText(), paramsToSend, new Integer(tfTaskLoad.getText()));
                 }
             } else if (ae.getSource() == btnEnter) {
                 if (tfClassFile.getText().isEmpty()) {

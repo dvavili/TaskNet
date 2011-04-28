@@ -550,22 +550,26 @@ public class TaskDistributor {
     }
 
     private Serializable handleDistributedTask(DistributedTask gotTask) {
+        return executeTask(gotTask.getClassName(), gotTask.getMethodName(), gotTask.getParameters());
+    }
+
+    private Serializable executeTask(String className, String methodName, Serializable[] parameters) {
         try {
-            Class cl = Class.forName(gotTask.getClassName());
+            Class cl = Class.forName(className);
             HashMap<String, Class[]> mthdDef = new HashMap<String, Class[]>();
             Method mthds[] = cl.getDeclaredMethods();
             for (Method m : mthds) {
                 mthdDef.put(m.getName(), m.getParameterTypes());
             }
-            if (gotTask.getParameters() != null && ((mthdDef.get(gotTask.getMethodName())).length
-                    != gotTask.getParameters().length)) {
+            if (parameters != null && ((mthdDef.get(methodName)).length
+                    != parameters.length)) {
                 logMessage("Parameters don\'t match");
             } else {
-                Class params[] = mthdDef.get(gotTask.getMethodName());
-                Object parameters[] = (Object[]) gotTask.getParameters();
+                Class paramsClass[] = mthdDef.get(methodName);
+                Object params[] = (Object[]) parameters;
                 try {
-                    Method invokedMethod = cl.getMethod(gotTask.getMethodName(), params);
-                    return (Serializable) invokedMethod.invoke(new SampleApplicationLocal(), parameters);
+                    Method invokedMethod = cl.getMethod(methodName, paramsClass);
+                    return (Serializable) invokedMethod.invoke(new SampleApplicationLocal(), params);
                 } catch (IllegalAccessException ex) {
                     ex.printStackTrace();
                 } catch (InvocationTargetException ex) {
@@ -594,7 +598,7 @@ public class TaskDistributor {
         //Merge results
         if (taskLookup.getStatus() == Preferences.TASK_STATUS.RECEIVED_RESULTS) {
             String result = "";
-            for (Integer rs:taskLookup.getTaskResults().keySet()) {
+            for (Integer rs : taskLookup.getTaskResults().keySet()) {
                 TaskResult tempTaskResult = taskLookup.getTaskResults().get(rs);
                 System.out.println(host + ":: received result from " + tempTaskResult.getSource() + " for load " + (tempTaskResult.getTaskBatteryLoad() - Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION));
                 result += (taskLookup.getTaskResults().get(rs)).toString() + " ";
@@ -672,6 +676,12 @@ public class TaskDistributor {
     }
 
     public void distribute(String className, String methodName, Serializable[] params, Integer taskBatteryLoad) {
+
+        if (taskBatteryLoad <= Preferences.MINIMUM_FRAGMENTATION_LOAD) {
+            executeTaskLocally(className, methodName, params, taskBatteryLoad);
+            return;
+        }
+
         String nodeName = "";
         String msgKind = "";
         String msgId = "";
@@ -683,13 +693,6 @@ public class TaskDistributor {
         TaskLookup taskLookup = new TaskLookup(newTask, className, methodName, params);
         synchronized (taskLookups) {
             taskLookups.put(taskId, taskLookup);
-        }
-        if (newTask.getTaskBatteryLoad() <= Preferences.MINIMUM_FRAGMENTATION_LOAD) {
-            if (newTask.getTaskBatteryLoad() > 0) {
-                executeTaskLocally(newTask.getTaskId(), newTask.getTaskBatteryLoad());
-                taskLookups.remove(taskId);
-                return;
-            }
         }
         Message advMsg = new Message(nodeName, msgKind, msgId, newTask, host);
         advMsg.setSource(host);
@@ -743,19 +746,20 @@ public class TaskDistributor {
                     try {
                         if (taskLookup.getRetry() < Preferences.NUMBER_OF_RETRIES_BEFORE_QUITTING) {
                             Thread.sleep(Preferences.WAIT_TIME_BEFORE_RETRYING);
-                        } else
+                        } else {
                             cannotDistribute = true;
+                        }
                     } catch (InterruptedException e) {
                     }
                 }
-                if (cannotDistribute==true || (taskLookup.getStatus() == Preferences.TASK_STATUS.ADVERTISED
+                if (cannotDistribute == true || (taskLookup.getStatus() == Preferences.TASK_STATUS.ADVERTISED
                         && taskLookup.getTask().getTaskBatteryLoad() > 0
                         && taskLookup.getTask().getTaskBatteryLoad()
                         <= Preferences.MINIMUM_FRAGMENTATION_LOAD)) {
                     int load = taskLookup.getTask().getTaskBatteryLoad();
                     taskLookup.getTask().setTaskBatteryLoad(0);
                     taskLookup.getTask().setPromisedTaskBatteryLoad(load
-                        + Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION);
+                            + Preferences.BATTERY_SPENT_IN_TASK_CHUNK_EXECUTION);
                     executeMethodLocally(taskLookup.getTask().getTaskId(), load);
                 }
             }
@@ -838,14 +842,25 @@ public class TaskDistributor {
         this.nodes = nodes;
     }
 
-    public void executeTaskLocally(String methodName, Integer taskLoad) {
-        int remainingLoad = Preferences.TOTAL_PROCESSOR_LOAD_AT_NODE - Preferences.RESERVED_PROCESSOR_AT_NODE;
-        int taskLoops = (int) Math.ceil((float) taskLoad / remainingLoad);
-        SampleApplicationLocal localApp = new SampleApplicationLocal();
-        ArrayList<ArrayList<Double>> mfcc_parameters = new ArrayList<ArrayList<Double>>();
-        for (int i = 0; i < taskLoops; i++) {
-            mfcc_parameters.add(localApp.method1(10, 20));
-        }
-        logMessage("Local Result from " + host + ":" + mfcc_parameters.toString());
+    public void executeTaskLocally(String className, String methodName, Serializable[] parameters, Integer taskLoad) {
+        Node hostNode = nodes.get(host);
+        int executedTaskLoad = 0;
+        String result = "";
+        do {
+            try {
+                hostNode.incrPromisedBatteryLoad(taskLoad);
+                hostNode.incrMemoryLoad(Preferences.TASK_DEFAULT_MEMORY_LOAD);
+                hostNode.incrProcessorLoad(Preferences.TASK_DEFAULT_CPU_LOAD);
+                result += executeTask(className, methodName, parameters).toString() + " ";
+                Thread.sleep(500);
+                hostNode.decrPromisedBatteryLoad(taskLoad);
+                hostNode.decrMemoryLoad(Preferences.TASK_DEFAULT_MEMORY_LOAD);
+                hostNode.decrProcessorLoad(Preferences.TASK_DEFAULT_CPU_LOAD);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(TaskDistributor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } while ((executedTaskLoad += Preferences.MAX_TASK_CHUNK_LOAD_SIZE) < taskLoad);
+        hostNode.decrBatteryLevel(taskLoad);
+        logMessage("Local Result from " + host + ":" + result);
     }
 }
