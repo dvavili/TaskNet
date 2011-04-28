@@ -548,6 +548,11 @@ public class TaskDistributor {
     }
 
     private Serializable handleDistributedTask(DistributedTask gotTask) {
+        try {
+            Thread.sleep(gotTask.getPromisedBatteryTaskLoad());
+        } catch (InterruptedException ex) {
+            Logger.getLogger(TaskDistributor.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return executeTask(gotTask.getClassName(), gotTask.getMethodName(), gotTask.getParameters());
     }
 
@@ -850,7 +855,7 @@ public class TaskDistributor {
                 hostNode.incrMemoryLoad(Preferences.TASK_DEFAULT_MEMORY_LOAD);
                 hostNode.incrProcessorLoad(Preferences.TASK_DEFAULT_CPU_LOAD);
                 result += executeTask(className, methodName, parameters).toString() + " ";
-                Thread.sleep(500);
+                Thread.sleep(Preferences.MAX_TASK_CHUNK_LOAD_SIZE);
                 hostNode.decrPromisedBatteryLoad(taskLoad);
                 hostNode.decrMemoryLoad(Preferences.TASK_DEFAULT_MEMORY_LOAD);
                 hostNode.decrProcessorLoad(Preferences.TASK_DEFAULT_CPU_LOAD);
