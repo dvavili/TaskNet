@@ -47,6 +47,7 @@ public class Message implements Serializable {
 
     public void setNormalMsgType(NormalMsgType type) {
         normalMsgType = type;
+        kind = normalMsgType.toString();
     }
 
     public NormalMsgType getNormalMsgType() {
