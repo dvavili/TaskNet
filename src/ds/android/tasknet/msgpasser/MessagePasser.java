@@ -273,9 +273,7 @@ public class MessagePasser extends Thread {
             oos.flush();
             sendData = bos.toByteArray();
             DatagramPacket udpsendPacket = null;
-            DatagramSocket udpClientSocket = null;
-            prop = new Properties();
-            prop.load(new FileInputStream(conf_file));
+            DatagramSocket udpClientSocket = null;            
             udpClientSocket = new DatagramSocket();
             udpClientSocket.setReceiveBufferSize(5000);
             udpClientSocket.setSendBufferSize(5000);
@@ -419,6 +417,12 @@ public class MessagePasser extends Thread {
      * Also ID of the message takes precedence over Kind
      */
     public void send(Message msg) throws InvalidMessageException {
+        prop = new Properties();
+        try {
+            prop.load(new FileInputStream(conf_file));
+        } catch (IOException ex) {
+            Logger.getLogger(MessagePasser.class.getName()).log(Level.SEVERE, null, ex);
+        }
         String msgType = prop.getProperty("is." + msg.getId());
         updateTime(msg, "send");
         if (msgType == null) {
@@ -552,6 +556,24 @@ public class MessagePasser extends Thread {
      * Also ID of the message takes precedence over Kind
      */
     void processReceivedMessage(Message msg) throws InvalidMessageException {
+
+        prop = new Properties();
+        try {
+            prop.load(new FileInputStream(conf_file));
+        } catch (IOException ex) {
+            Logger.getLogger(MessagePasser.class.getName()).log(Level.SEVERE, null, ex);
+        }
+       String msgType = prop.getProperty("ir." + msg.getId());
+        if (msgType == null) {
+            msgType = prop.getProperty("kr." + msg.getKind());
+            if (msgType == null) {
+                msgType = "other";
+            }
+        }
+
+       if (msgType.equalsIgnoreCase("drop"))
+           return;
+
         if (!msg.getDest().equalsIgnoreCase("logger")) {
             updateTime(msg, "receive");
             switch (msg.getNormalMsgType()) {
@@ -587,23 +609,7 @@ public class MessagePasser extends Thread {
                     return;
             }
         }
-        String msgType = prop.getProperty("is." + msg.getId());
-        if (msgType != null) {
-            msgType = "other";
-        } else {
-            msgType = prop.getProperty("ir." + msg.getId());
-            if (msgType == null) {
-                msgType = prop.getProperty("ks." + msg.getKind());
-                if (msgType == null) {
-                    msgType = prop.getProperty("kr." + msg.getKind());
-                    if (msgType == null) {
-                        msgType = "other";
-                    }
-                } else {
-                    msgType = "other";
-                }
-            }
-        }
+       
         if (msgType.equalsIgnoreCase("drop")) {
 //            System.out.println("Received msg dropped");
             if (Preferences.logDrop || msg.isToBeLogged()) {

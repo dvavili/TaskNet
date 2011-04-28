@@ -56,16 +56,16 @@ public class TaskNetLogger implements ActionListener {
     MessagePasser mp;
     String host_name;
     Map<String, Node> nodes = new HashMap<String, Node>();
-	Map<Integer, String> node_names = new HashMap<Integer, String>();
-	Map<String, InetAddress> node_addresses = new HashMap<String, InetAddress>();
+    Map<Integer, String> node_names = new HashMap<Integer, String>();
+    Map<String, InetAddress> node_addresses = new HashMap<String, InetAddress>();
 
     public TaskNetLogger(String host_name, String conf_file) {
 
-    	this.host_name = host_name;
+        this.host_name = host_name;
         Preferences.setHostDetails(conf_file, host_name);
         try {
             mp = new MessagePasser(conf_file, host_name, InetAddress.getByName("127.0.0.1").getHostAddress(),
-            		this.nodes, this.node_names, this.node_addresses);
+                    this.nodes, this.node_names, this.node_addresses);
         } catch (UnknownHostException ex) {
             Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -150,48 +150,27 @@ public class TaskNetLogger implements ActionListener {
                         if (msg != null) {
                             switch (msg.getNormalMsgType()) {
                                 case BOOTSTRAP:
-                                    Node newNode = (Node) msg.getData();
-                                    newNode.setNodeIndex(nodes.size());
-                                    createNewLogFrame(newNode.getName());
-                                    try {
-                                        System.out.println(newNode.getAdrress());
-                                    } catch (UnknownHostException ex) {
-                                        Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
-                                    }
-                                    nodes.put(msg.getSource(), newNode);
-                                    try {
-                                        node_addresses.put(newNode.getName(), newNode.getAdrress());
-                                    } catch (UnknownHostException ex) {
-                                        Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
-                                    }
-                                    node_names.put(newNode.getIndex(), newNode.getName());
-                                    Message bootstrapNodeList = new Message(msg.getSource(),
-                                            "", "", (Serializable) nodes, host_name);
-                                    bootstrapNodeList.setNormalMsgType(Message.NormalMsgType.BOOTSTRAP_NODE_LIST);
-                                    try {
-                                        mp.send(bootstrapNodeList);
-                                    } catch (InvalidMessageException ex) {
-                                        Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
-                                    }
+                                    addNodeIntoSystem(msg);
                                     break;
-                                case LOG_MESSAGE:
+                                case LOG_MESSAGE:   
                                     nodeLogs.get(msg.getLogSource()).add(msg.getData().toString());
                                     taLogArea.append(msg.getLogSource() + ": " + msg.getData());
                                     nodeLogTextAreaMap.get(msg.getLogSource()).append(msg.getData().toString());
                                     break;
                                 case PROFILE_UPDATE:
-//                                    System.out.println("Receiving update info");
                                     Node nodeToBeUpdated = (Node) msg.getData();
-                                    try{
-                                    	synchronized (nodes) {
-                                        int mem = (int) nodeToBeUpdated.getMemoryLoad();
-                                        int procload = (int) nodeToBeUpdated.getProcessorLoad();
-                                        int batterylevel = nodeToBeUpdated.getBatteryLevel();
-                                        (nodes.get(nodeToBeUpdated.getName())).update(mem, procload, batterylevel);
-                                    	}
-                                    }catch(Exception e)
-                                    {
-                                    	e.getStackTrace();
+                                    if (!nodes.containsKey(nodeToBeUpdated.getName())) {
+                                        addNodeIntoSystem(msg);
+                                    }
+                                    try {
+                                        synchronized (nodes) {
+                                            int mem = (int) nodeToBeUpdated.getMemoryLoad();
+                                            int procload = (int) nodeToBeUpdated.getProcessorLoad();
+                                            int batterylevel = nodeToBeUpdated.getBatteryLevel();
+                                            (nodes.get(nodeToBeUpdated.getName())).update(mem, procload, batterylevel);
+                                        }
+                                    } catch (Exception e) {
+                                        e.getStackTrace();
                                     }
                                     repaintPanel();
                                     break;
@@ -200,6 +179,32 @@ public class TaskNetLogger implements ActionListener {
                     } catch (InterruptedException ex) {
                         ex.printStackTrace();
                     }
+                }
+            }
+
+            private void addNodeIntoSystem(Message msg) {
+                Node newNode = (Node)msg.getData();
+                newNode.setNodeIndex(nodes.size());
+                createNewLogFrame(newNode.getName());
+                try {
+                    System.out.println(newNode.getAdrress());
+                } catch (UnknownHostException ex) {
+                    Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                nodes.put(msg.getSource(), newNode);
+                try {
+                    node_addresses.put(newNode.getName(), newNode.getAdrress());
+                } catch (UnknownHostException ex) {
+                    Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                node_names.put(newNode.getIndex(), newNode.getName());
+                Message bootstrapNodeList = new Message(msg.getSource(),
+                        "", "", (Serializable) nodes, host_name);
+                bootstrapNodeList.setNormalMsgType(Message.NormalMsgType.BOOTSTRAP_NODE_LIST);
+                try {
+                    mp.send(bootstrapNodeList);
+                } catch (InvalidMessageException ex) {
+                    Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         }).start();
@@ -275,8 +280,8 @@ public class TaskNetLogger implements ActionListener {
 
             memoryProgressBars = new JProgressBar[numberOfClients];
             for (int i = 0; i < numberOfClients; i++) {
-                memoryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 
-                		0, Preferences.TOTAL_MEMORY_LOAD_AT_NODE);
+                memoryProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL,
+                        0, Preferences.TOTAL_MEMORY_LOAD_AT_NODE);
                 memoryProgressBars[i].setValue((int) ((Node) nodeList[i]).getMemoryLoad());
             }
 
@@ -301,8 +306,8 @@ public class TaskNetLogger implements ActionListener {
 
             cpuLoadProgressBars = new JProgressBar[numberOfClients];
             for (int i = 0; i < numberOfClients; i++) {
-                cpuLoadProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0, 
-                		Preferences.TOTAL_PROCESSOR_LOAD_AT_NODE);
+                cpuLoadProgressBars[i] = new JProgressBar(JProgressBar.VERTICAL, 0,
+                        Preferences.TOTAL_PROCESSOR_LOAD_AT_NODE);
                 cpuLoadProgressBars[i].setValue((int) ((Node) nodeList[i]).getProcessorLoad());
             }
 
@@ -369,8 +374,9 @@ public class TaskNetLogger implements ActionListener {
                             }
                             nodesToRemove.remove(nodeToRemove);
                         }
-                        if(numOfNodesToRemove > 0)
+                        if (numOfNodesToRemove > 0) {
                             repaintPanel();
+                        }
                     } catch (InvalidMessageException ex) {
                         Logger.getLogger(TaskNetLogger.class.getName()).log(Level.SEVERE, null, ex);
                     } catch (InterruptedException ex) {
@@ -378,7 +384,6 @@ public class TaskNetLogger implements ActionListener {
                     }
                 }
             }
-            
         }).start();
     }
 }
