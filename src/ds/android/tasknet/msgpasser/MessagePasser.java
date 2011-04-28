@@ -319,17 +319,17 @@ public class MessagePasser extends Thread {
                             udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(message.getDest()).getAdrress(), this.nodes.get(message.getDest()).getNodePort());
                         }
                     }
+                    if(this.nodes.get(host_name) != null 
+                    		&& this.nodes.get(host_name).getBatteryLevel() 
+                            	>= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND) {
+                    	udpClientSocket.send(udpsendPacket);
+                    }
                     //if source/dest is logger dont simulate energy consumption
-                    if (!message.getDest().equals(Preferences.LOGGER_NAME)
-                            && !message.getSource().equals(Preferences.LOGGER_NAME)
-                            && (this.nodes.get(host_name).getBatteryLevel() 
-                            >= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND)) {
+                    if (this.nodes.get(host_name) != null 
+                    		&& !message.getDest().equals(Preferences.LOGGER_NAME)
+                            && !message.getSource().equals(Preferences.LOGGER_NAME)) {
                         this.nodes.get(host_name).decrBatteryLevel(
                         		Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND);
-                        udpClientSocket.send(udpsendPacket);
-                    }
-                    else {
-                    	udpClientSocket.send(udpsendPacket);
                     }
                 } else {
                     Object[] node_names = this.node_addresses.keySet().toArray();
@@ -346,17 +346,17 @@ public class MessagePasser extends Thread {
                                 udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(node_names[i]).getAdrress(), this.nodes.get(node_names[i]).getNodePort());
                                 }
                             }
+                            if(this.nodes.get(host_name) != null
+                            		&& this.nodes.get(host_name).getBatteryLevel() 
+                                    	>= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND) {
+                            	udpClientSocket.send(udpsendPacket);
+                            }
                             //if source/dest is logger dont simulate energy consumption
-                            if (!message.getDest().equals(Preferences.LOGGER_NAME)
-                                    && !message.getSource().equals(Preferences.LOGGER_NAME)
-                                    && (this.nodes.get(host_name).getBatteryLevel() 
-                                            >= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND)) {
+                            if (this.nodes.get(host_name) != null 
+                            		&& !message.getDest().equals(Preferences.LOGGER_NAME)
+                                    && !message.getSource().equals(Preferences.LOGGER_NAME)) {
                                 this.nodes.get(host_name).decrBatteryLevel(
                                 		Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND);
-                                udpClientSocket.send(udpsendPacket);
-                            }
-                            else {
-                            	udpClientSocket.send(udpsendPacket);
                             }
                         }
                     }
@@ -370,20 +370,19 @@ public class MessagePasser extends Thread {
                     }
                 }
                 //remove this if letter
+                if(this.nodes.get(host_name) != null
+                		&& this.nodes.get(host_name).getBatteryLevel() 
+                        	>= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND) {
+                	if(udpsendPacket != null)
+                		udpClientSocket.send(udpsendPacket);
+                }                
                 //if source/dest is logger dont simulate energy consumption
-                if (!message.getDest().equals(Preferences.LOGGER_NAME)
-                        && !message.getSource().equals(Preferences.LOGGER_NAME)
-                        && this.nodes.get(host_name) != null
-                        && (this.nodes.get(host_name).getBatteryLevel() 
-                                >= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND)) {
+                if (this.nodes.get(host_name) != null
+                		&& !message.getDest().equals(Preferences.LOGGER_NAME)
+                        && !message.getSource().equals(Preferences.LOGGER_NAME)) {
                 	this.nodes.get(host_name).decrBatteryLevel(Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND);
-                    if(udpsendPacket != null)
-                    udpClientSocket.send(udpsendPacket);
                 }
-                else {
-                    if(udpsendPacket != null)
-                	udpClientSocket.send(udpsendPacket);
-                }
+
             }
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -488,19 +487,18 @@ public class MessagePasser extends Thread {
                 ois = new ObjectInputStream(bis);
                 final Message msg = (Message) (ois.readObject());
 
+                if(this.nodes.get(host_name) == null
+                		|| (this.nodes.get(host_name).getBatteryLevel() 
+                				< Preferences.BATTERY_SPENT_IN_COMMUNICATION_RECEIVE)) {
+                	continue;
+                }
+                
                 //if source/dest is logger dont simulate energy consumption
                 if (!msg.getDest().equals(Preferences.LOGGER_NAME)
                         && !msg.getSource().equals(Preferences.LOGGER_NAME)
                         && this.nodes.get(host_name) != null) {
-                	
-                	if((this.nodes.get(host_name).getBatteryLevel() 
-                                >= Preferences.BATTERY_SPENT_IN_COMMUNICATION_RECEIVE)) {
-                		this.nodes.get(host_name).decrBatteryLevel(
-                				Preferences.BATTERY_SPENT_IN_COMMUNICATION_RECEIVE);
-                	}
-                	else {
-                		continue;
-                	}
+            		this.nodes.get(host_name).decrBatteryLevel(
+            				Preferences.BATTERY_SPENT_IN_COMMUNICATION_RECEIVE);                	
                 }
 
                 if (msg instanceof MulticastMessage) {
