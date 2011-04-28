@@ -84,6 +84,7 @@ public class TaskDistributor {
          */
 
         (new Thread() {
+
             @Override
             public void run() {
                 while (true) {
@@ -207,7 +208,7 @@ public class TaskDistributor {
                                                         + " batteryLoadCanServe " + batteryLoadCanServe
                                                         + " remaining_battery_load " + remaining_battery_load
                                                         + " received load " + receivedTask.getTaskBatteryLoad()
-                                                        + " prmised load " + host_node.getPromisedBatteryLoad());
+                                                        + " promised load " + host_node.getPromisedBatteryLoad());
                                                 logMessage("Node Overloaded: "
                                                         + receivedTask.taskId + " "
                                                         + batteryLoadCanServe);
@@ -646,6 +647,12 @@ public class TaskDistributor {
                     taskToDistribute.setTaskBatteryLoad(taskToDistribute.getTaskBatteryLoad() + loadDistributed);
                     if (taskToDistribute.getTaskBatteryLoad() > 0) {
                         taskLookup.setStatus(Preferences.TASK_STATUS.ADVERTISED);
+                        taskLookup.getTask().setTaskBatteryLoad(taskLookup.getTask().getTaskBatteryLoad()
+                                + taskToDistribute.getTaskBatteryLoad());
+                        Message advMsg = new Message("", "", "", taskLookup.getTask(), host);
+                        advMsg.setSource(host);
+                        advMsg.setNormalMsgType(Message.NormalMsgType.TASK_ADV);
+                        sendAndRetryTaskAdv(taskLookup, advMsg);
                     }
                 }
             }

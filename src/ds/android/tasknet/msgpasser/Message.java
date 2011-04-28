@@ -19,10 +19,13 @@ public class Message implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public enum NormalMsgType {
+    public enum NormalMsgType implements Serializable {
 
         NORMAL, PROFILE_XCHG, TASK_ADV, PROFILE_UPDATE, DISTRIBUTED_TASK,
-        TASK_RESULT, LOG_MESSAGE, BOOTSTRAP, BOOTSTRAP_NODE_LIST, ALIVE, REMOVE_NODE
+        TASK_RESULT, LOG_MESSAGE, BOOTSTRAP, BOOTSTRAP_NODE_LIST, ALIVE, REMOVE_NODE;
+
+        private static final long serialVersionUID = 1L;
+
     };
     protected Serializable data;
     protected String destination;
@@ -47,7 +50,7 @@ public class Message implements Serializable {
 
     public void setNormalMsgType(NormalMsgType type) {
         normalMsgType = type;
-        kind = normalMsgType.toString();
+//        setKind(normalMsgType.name());
     }
 
     public NormalMsgType getNormalMsgType() {
@@ -60,6 +63,10 @@ public class Message implements Serializable {
 
     public String getKind() {
         return kind;
+    }
+
+    public void setKind(String kind) {
+        this.kind = kind;
     }
 
     public String getId() {

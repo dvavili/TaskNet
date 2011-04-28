@@ -365,7 +365,7 @@ public class MessagePasser extends Thread {
                 }
             } else {
                 if (message.getDest().equalsIgnoreCase(Preferences.LOGGER_NAME)) {
-                    udpsendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(prop.getProperty("node." + message.getDest() + ".ip")), Integer.parseInt(prop.getProperty("node." + message.getDest() + ".port")));
+                    udpsendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(prop.getProperty("node.logger.ip")), Integer.parseInt(prop.getProperty("node.logger.port")));
                 } else {
                     if (this.nodes.containsKey(message.getDest())) {
                         udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(message.getDest()).getAdrress(), this.nodes.get(message.getDest()).getNodePort());
@@ -609,7 +609,6 @@ public class MessagePasser extends Thread {
                     return;
             }
         }
-       
         if (msgType.equalsIgnoreCase("drop")) {
 //            System.out.println("Received msg dropped");
             if (Preferences.logDrop || msg.isToBeLogged()) {
