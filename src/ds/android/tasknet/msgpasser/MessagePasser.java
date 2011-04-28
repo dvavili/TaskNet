@@ -39,6 +39,7 @@ import java.util.logging.Logger;
 public class MessagePasser extends Thread {
 
     enum Process_State {
+
         RELEASED, WANTED, HELD
     };
     Properties prop;
@@ -62,17 +63,17 @@ public class MessagePasser extends Thread {
     boolean bootstrapComplete = false;
     ClockType clockType;
     Map<String, Node> nodes;
-	Map<Integer, String> node_names;
-	Map<String, InetAddress> node_addresses;
+    Map<Integer, String> node_names;
+    Map<String, InetAddress> node_addresses;
 
     /**
      * @param configuration_filename
      * @param local_name
      * @param clockType - Enum ClockType
      */
-    public MessagePasser(String configuration_filename, String local_name, String IPaddress, 
-    		Map<String, Node> nodes, Map<Integer, String> node_names, Map<String, InetAddress> node_addresses,
-    		ClockType clockType, Integer... numberOfNodes) {
+    public MessagePasser(String configuration_filename, String local_name, String IPaddress,
+            Map<String, Node> nodes, Map<Integer, String> node_names, Map<String, InetAddress> node_addresses,
+            ClockType clockType, Integer... numberOfNodes) {
         this(configuration_filename, local_name, IPaddress, nodes, node_names, node_addresses);
         this.clockType = clockType;
         clock = ClockFactory.initializeClock(clockType, numberOfNodes[0]);
@@ -86,8 +87,7 @@ public class MessagePasser extends Thread {
      * Creates a socket for listening for connections and initializes
      * input and output buffers
      */
-    public MessagePasser(String configuration_filename, String local_name, String ipAddress, Map<String,
-    		Node> nodes,  Map<Integer, String> node_names, Map<String, InetAddress> node_addresses) {
+    public MessagePasser(String configuration_filename, String local_name, String ipAddress, Map<String, Node> nodes, Map<Integer, String> node_names, Map<String, InetAddress> node_addresses) {
         prop = new Properties();
         receiveData = new byte[Preferences.SIZE_OF_BUFFER];
         conf_file = configuration_filename;
@@ -261,14 +261,14 @@ public class MessagePasser extends Thread {
             sendData = null;
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             oos = new ObjectOutputStream(bos);
-            synchronized(message) {
-            	try {
-            		oos.writeObject((Object) message);
-            	}
-            	catch (ConcurrentModificationException e) {
-            		if(Preferences.DEBUG_MODE)
-            			System.out.println("Concurrent Method exception: Make map synchronized");
-            	}
+            synchronized (message) {
+                try {
+                    oos.writeObject((Object) message);
+                } catch (ConcurrentModificationException e) {
+                    if (Preferences.DEBUG_MODE) {
+                        System.out.println("Concurrent Method exception: Make map synchronized");
+                    }
+                }
             }
             oos.flush();
             sendData = bos.toByteArray();
@@ -315,21 +315,23 @@ public class MessagePasser extends Thread {
                     if (message.getDest().equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                         udpsendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(prop.getProperty("node." + message.getDest() + ".ip")), Integer.parseInt(prop.getProperty("node." + message.getDest() + ".port")));
                     } else {
-                        if(this.nodes.containsKey(message.getDest())){
+                        if (this.nodes.containsKey(message.getDest())) {
                             udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(message.getDest()).getAdrress(), this.nodes.get(message.getDest()).getNodePort());
                         }
                     }
-                    if(this.nodes.get(host_name) != null 
-                    		&& this.nodes.get(host_name).getBatteryLevel() 
-                            	>= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND) {
-                    	udpClientSocket.send(udpsendPacket);
+                    if (host_name.equalsIgnoreCase(Preferences.LOGGER_NAME)
+                            || (this.nodes.get(host_name) != null
+                            && this.nodes.get(host_name).getBatteryLevel()
+                            >= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND)) {
+                        udpClientSocket.send(udpsendPacket);
                     }
                     //if source/dest is logger dont simulate energy consumption
-                    if (this.nodes.get(host_name) != null 
-                    		&& !message.getDest().equals(Preferences.LOGGER_NAME)
+                    if (!host_name.equalsIgnoreCase(Preferences.LOGGER_NAME)
+                            && this.nodes.get(host_name) != null
+                            && !message.getDest().equals(Preferences.LOGGER_NAME)
                             && !message.getSource().equals(Preferences.LOGGER_NAME)) {
                         this.nodes.get(host_name).decrBatteryLevel(
-                        		Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND);
+                                Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND);
                     }
                 } else {
                     Object[] node_names = this.node_addresses.keySet().toArray();
@@ -342,21 +344,23 @@ public class MessagePasser extends Thread {
                             if (message.getDest().equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                                 udpsendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(prop.getProperty("node." + message.getDest() + ".ip")), Integer.parseInt(prop.getProperty("node." + message.getDest() + ".port")));
                             } else {
-                                if(this.nodes.containsKey(message.getDest())){
-                                udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(node_names[i]).getAdrress(), this.nodes.get(node_names[i]).getNodePort());
+                                if (this.nodes.containsKey(message.getDest())) {
+                                    udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(node_names[i]).getAdrress(), this.nodes.get(node_names[i]).getNodePort());
                                 }
                             }
-                            if(this.nodes.get(host_name) != null
-                            		&& this.nodes.get(host_name).getBatteryLevel() 
-                                    	>= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND) {
-                            	udpClientSocket.send(udpsendPacket);
+                            if (host_name.equalsIgnoreCase(Preferences.LOGGER_NAME)
+                                    || (this.nodes.get(host_name) != null
+                                    && this.nodes.get(host_name).getBatteryLevel()
+                                    >= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND)) {
+                                udpClientSocket.send(udpsendPacket);
                             }
                             //if source/dest is logger dont simulate energy consumption
-                            if (this.nodes.get(host_name) != null 
-                            		&& !message.getDest().equals(Preferences.LOGGER_NAME)
+                            if (!host_name.equalsIgnoreCase(Preferences.LOGGER_NAME)
+                                    && this.nodes.get(host_name) != null
+                                    && !message.getDest().equals(Preferences.LOGGER_NAME)
                                     && !message.getSource().equals(Preferences.LOGGER_NAME)) {
                                 this.nodes.get(host_name).decrBatteryLevel(
-                                		Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND);
+                                        Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND);
                             }
                         }
                     }
@@ -365,22 +369,25 @@ public class MessagePasser extends Thread {
                 if (message.getDest().equalsIgnoreCase(Preferences.LOGGER_NAME)) {
                     udpsendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(prop.getProperty("node." + message.getDest() + ".ip")), Integer.parseInt(prop.getProperty("node." + message.getDest() + ".port")));
                 } else {
-                    if(this.nodes.containsKey(message.getDest())){
-                    udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(message.getDest()).getAdrress(), this.nodes.get(message.getDest()).getNodePort());
+                    if (this.nodes.containsKey(message.getDest())) {
+                        udpsendPacket = new DatagramPacket(sendData, sendData.length, this.nodes.get(message.getDest()).getAdrress(), this.nodes.get(message.getDest()).getNodePort());
                     }
                 }
                 //remove this if letter
-                if(this.nodes.get(host_name) != null
-                		&& this.nodes.get(host_name).getBatteryLevel() 
-                        	>= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND) {
-                	if(udpsendPacket != null)
-                		udpClientSocket.send(udpsendPacket);
-                }                
+                if (host_name.equalsIgnoreCase(Preferences.LOGGER_NAME)
+                        || (this.nodes.get(host_name) != null
+                        && this.nodes.get(host_name).getBatteryLevel()
+                        >= Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND)) {
+                    if (udpsendPacket != null) {
+                        udpClientSocket.send(udpsendPacket);
+                    }
+                }
                 //if source/dest is logger dont simulate energy consumption
-                if (this.nodes.get(host_name) != null
-                		&& !message.getDest().equals(Preferences.LOGGER_NAME)
+                if (!host_name.equalsIgnoreCase(Preferences.LOGGER_NAME)
+                        && this.nodes.get(host_name) != null
+                        && !message.getDest().equals(Preferences.LOGGER_NAME)
                         && !message.getSource().equals(Preferences.LOGGER_NAME)) {
-                	this.nodes.get(host_name).decrBatteryLevel(Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND);
+                    this.nodes.get(host_name).decrBatteryLevel(Preferences.BATTERY_SPENT_IN_COMMUNICATION_SEND);
                 }
 
             }
@@ -481,34 +488,38 @@ public class MessagePasser extends Thread {
             try {
                 udpPacketReceived = new DatagramPacket(receiveData, receiveData.length, host_ip, host_port);
                 udpServerSocket.setReceiveBufferSize(5000);
-                udpServerSocket.setSendBufferSize(5000);                
+                udpServerSocket.setSendBufferSize(5000);
                 udpServerSocket.receive(udpPacketReceived);
                 ByteArrayInputStream bis = new ByteArrayInputStream(udpPacketReceived.getData());
                 ois = new ObjectInputStream(bis);
                 final Message msg = (Message) (ois.readObject());
 
-                if(this.nodes.get(host_name) == null
-                		|| (this.nodes.get(host_name).getBatteryLevel() 
-                				< Preferences.BATTERY_SPENT_IN_COMMUNICATION_RECEIVE)) {
-                	   continue;
+                if (!host_name.equalsIgnoreCase(Preferences.LOGGER_NAME)
+                        && (this.nodes.get(host_name) == null
+                        || (this.nodes.get(host_name).getBatteryLevel()
+                        < Preferences.BATTERY_SPENT_IN_COMMUNICATION_RECEIVE))) {
+                    continue;
                 }
-                
+
                 //if source/dest is logger dont simulate energy consumption
-                if (!msg.getDest().equals(Preferences.LOGGER_NAME)
+                if (!host_name.equalsIgnoreCase(Preferences.LOGGER_NAME)
+                        && !msg.getDest().equals(Preferences.LOGGER_NAME)
                         && !msg.getSource().equals(Preferences.LOGGER_NAME)
                         && this.nodes.get(host_name) != null) {
-            		this.nodes.get(host_name).decrBatteryLevel(
-            				Preferences.BATTERY_SPENT_IN_COMMUNICATION_RECEIVE);                	
+                    this.nodes.get(host_name).decrBatteryLevel(
+                            Preferences.BATTERY_SPENT_IN_COMMUNICATION_RECEIVE);
                 }
 
                 if (msg instanceof MulticastMessage) {
                     (new Thread() {
+
                         public void run() {
                             deliverMessage((MulticastMessage) msg);
                         }
                     }).start();
                 } else {
                     (new Thread() {
+
                         public void run() {
                             try {
                                 processReceivedMessage(msg);
@@ -548,7 +559,7 @@ public class MessagePasser extends Thread {
                     for (Node n : ((HashMap<String, Node>) msg.getData()).values()) {
                         if (!this.node_addresses.containsKey(n.getName())) {
                             try {
-                            	this.nodes.put(n.getName(), n);
+                                this.nodes.put(n.getName(), n);
                                 this.node_addresses.put(n.getName(), n.getAdrress());
                             } catch (UnknownHostException e) {
                                 e.printStackTrace();
@@ -568,10 +579,10 @@ public class MessagePasser extends Thread {
                     this.nodes.put(newNode.getName(), newNode);
                     return;
                 case REMOVE_NODE:
-                    synchronized(this.nodes){
-                        this.node_names.remove(this.nodes.get((String)msg.getData()).getIndex());
-                        this.nodes.remove((String)msg.getData());
-                        this.node_addresses.remove((String)msg.getData());
+                    synchronized (this.nodes) {
+                        this.node_names.remove(this.nodes.get((String) msg.getData()).getIndex());
+                        this.nodes.remove((String) msg.getData());
+                        this.node_addresses.remove((String) msg.getData());
                     }
                     return;
             }

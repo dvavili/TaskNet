@@ -16,7 +16,14 @@ import ds.android.tasknet.config.Preferences;
 public class SampleApplicationLocal {
 
     public ArrayList<Double> method1(int a, int b) {
- 
+    	
+    	// a should be less than b
+    	if(a > b) {
+    		int temp = a;
+    		a = b;
+    		b = temp;
+    	}
+    	
         int nnumberofFilters = 24;	
         int nlifteringCoefficient = b;	//earlier value was 22, now set to a-20
         boolean oisLifteringEnabled = true;
